@@ -26,8 +26,17 @@
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="com.y4n9b0.exo.demo.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+
+                <data android:scheme="http" />
+                <data android:scheme="https" />
+                <data android:scheme="content" />
+                <data android:scheme="asset" />
+                <data android:scheme="file" />
             </intent-filter>
         </activity>
     </application>
