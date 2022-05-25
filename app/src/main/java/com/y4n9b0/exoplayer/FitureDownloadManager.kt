@@ -26,10 +26,10 @@ class FitureDownloadManager private constructor(context: Context) {
     }
 
     val downloadCache: Cache by lazy {
-        // A download cache should not evict media, so should use a NoopCacheEvictor.
+        // A download cache keep only one media file at most.
         SimpleCache(
             externalFilesDir,
-            NoOpCacheEvictor(),
+            LruCacheEvictor(1),
             databaseProvider
         )
     }
