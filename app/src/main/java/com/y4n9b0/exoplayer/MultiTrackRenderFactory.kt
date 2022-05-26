@@ -1,0 +1,96 @@
+package com.y4n9b0.exoplayer
+
+import android.content.Context
+import android.os.Handler
+import com.google.android.exoplayer2.DefaultRenderersFactory
+import com.google.android.exoplayer2.Renderer
+import com.google.android.exoplayer2.audio.AudioRendererEventListener
+import com.google.android.exoplayer2.audio.AudioSink
+import com.google.android.exoplayer2.mediacodec.MediaCodecSelector
+
+class MultiTrackRenderFactory(context: Context) : DefaultRenderersFactory(context) {
+
+    override fun buildAudioRenderers(
+        context: Context,
+        extensionRendererMode: Int,
+        mediaCodecSelector: MediaCodecSelector,
+        enableDecoderFallback: Boolean,
+        audioSink: AudioSink,
+        eventHandler: Handler,
+        eventListener: AudioRendererEventListener,
+        out: ArrayList<Renderer>
+    ) {
+        repeat(3) {
+            out.add(
+                MultiTrackAudioRender(
+                    trackIndex = it,
+                    context = context,
+                    mediaCodecSelector = mediaCodecSelector,
+                    enableDecoderFallback = enableDecoderFallback,
+                    eventHandler = eventHandler,
+                    eventListener = eventListener,
+                    audioSink = audioSink
+                )
+            )
+        }
+
+        if (extensionRendererMode == EXTENSION_RENDERER_MODE_OFF) {
+            return
+        }
+        var extensionRendererIndex = out.size
+        if (extensionRendererMode == EXTENSION_RENDERER_MODE_PREFER) {
+            extensionRendererIndex--
+        }
+
+        try {
+            // Full class names used for constructor args so the LINT rule triggers if any of them move.
+            val clazz = Class.forName("com.google.android.exoplayer2.ext.opus.LibopusAudioRenderer")
+            val constructor = clazz.getConstructor(
+                Handler::class.java,
+                AudioRendererEventListener::class.java,
+                AudioSink::class.java
+            )
+            val renderer = constructor.newInstance(eventHandler, eventListener, audioSink) as Renderer
+            out.add(extensionRendererIndex++, renderer)
+        } catch (e: ClassNotFoundException) {
+            // Expected if the app was built without the extension.
+        } catch (e: Exception) {
+            // The extension is present, but instantiation failed.
+            throw RuntimeException("Error instantiating Opus extension", e)
+        }
+
+        try {
+            // Full class names used for constructor args so the LINT rule triggers if any of them move.
+            val clazz = Class.forName("com.google.android.exoplayer2.ext.flac.LibflacAudioRenderer")
+            val constructor = clazz.getConstructor(
+                Handler::class.java,
+                AudioRendererEventListener::class.java,
+                AudioSink::class.java
+            )
+            val renderer = constructor.newInstance(eventHandler, eventListener, audioSink) as Renderer
+            out.add(extensionRendererIndex++, renderer)
+        } catch (e: ClassNotFoundException) {
+            // Expected if the app was built without the extension.
+        } catch (e: Exception) {
+            // The extension is present, but instantiation failed.
+            throw RuntimeException("Error instantiating FLAC extension", e)
+        }
+
+        try {
+            // Full class names used for constructor args so the LINT rule triggers if any of them move.
+            val clazz = Class.forName("com.google.android.exoplayer2.ext.ffmpeg.FfmpegAudioRenderer")
+            val constructor = clazz.getConstructor(
+                Handler::class.java,
+                AudioRendererEventListener::class.java,
+                AudioSink::class.java
+            )
+            val renderer = constructor.newInstance(eventHandler, eventListener, audioSink) as Renderer
+            out.add(extensionRendererIndex++, renderer)
+        } catch (e: ClassNotFoundException) {
+            // Expected if the app was built without the extension.
+        } catch (e: Exception) {
+            // The extension is present, but instantiation failed.
+            throw RuntimeException("Error instantiating FFmpeg extension", e)
+        }
+    }
+}

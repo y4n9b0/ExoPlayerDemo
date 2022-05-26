@@ -2,16 +2,22 @@ package com.y4n9b0.exoplayer
 
 import android.net.Uri
 import android.os.Bundle
+import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.exoplayer2.C
 import com.google.android.exoplayer2.ExoPlayer
 import com.google.android.exoplayer2.MediaItem
+import com.google.android.exoplayer2.PlaybackException
+import com.google.android.exoplayer2.Player
+import com.google.android.exoplayer2.analytics.AnalyticsListener
 import com.google.android.exoplayer2.ext.rtmp.RtmpDataSource
 import com.google.android.exoplayer2.extractor.flv.FlvExtractor
 import com.google.android.exoplayer2.offline.Download
 import com.google.android.exoplayer2.offline.DownloadRequest
 import com.google.android.exoplayer2.offline.DownloadService
 import com.google.android.exoplayer2.source.DefaultMediaSourceFactory
+import com.google.android.exoplayer2.source.LoadEventInfo
+import com.google.android.exoplayer2.source.MediaLoadData
 import com.google.android.exoplayer2.source.MediaSource
 import com.google.android.exoplayer2.source.ProgressiveMediaSource
 import com.google.android.exoplayer2.source.dash.DashMediaSource
@@ -27,14 +33,66 @@ import com.google.android.exoplayer2.upstream.cache.Cache
 import com.google.android.exoplayer2.upstream.cache.CacheDataSource
 import com.google.android.exoplayer2.upstream.cache.CacheKeyFactory
 import com.google.android.exoplayer2.util.Util
+import java.io.IOException
 
 class MainActivity : AppCompatActivity() {
 
+    private val TAG = "Bob"
     val ACTION_VIEW = "com.y4n9b0.exo.demo.action.VIEW"
-    var url = "https://c4.biketo.com/article_video/20190917/4jsDf5pEGC.mp4"
+    var url = "http://cp-vod.qa.fiture.com/callback/play/add2e56c1e7b7df307a6cb826bdaee3b5a5496c7/video.m3u8"
+    // var url = "https://dev-vod.fiture.com/1834f6f999bc429580b553dd03bede20/997bf6a033d34ca5b8b4f4a7ee2a3a73-1e1a8c3c237291470a802e7df21b9ca9-od-S00000001-100000.m3u8"
+    // var url = "https://dev-vod.fiture.com/7ec630630702455cbaed60cd1b1ceac4/269d6c9c439f4bd09d41c31cca3ef792-a709aafdbc5d9b5f987407d4a35671fc-od-S00000001-100000.m3u8"
 
-    val exoPlayer: ExoPlayer by lazy {
-        ExoPlayer.Builder(this).build()
+    private val listener = object : Player.Listener {
+        override fun onPlayerError(error: PlaybackException) {
+            super.onPlayerError(error)
+            Log.e(TAG, "Listener onPlayerError ${error.message}")
+        }
+    }
+
+    private val analyticsListener = object : AnalyticsListener {
+        override fun onAudioCodecError(eventTime: AnalyticsListener.EventTime, audioCodecError: Exception) {
+            super.onAudioCodecError(eventTime, audioCodecError)
+            Log.e(TAG, "onAudioCodecError ${audioCodecError.message}")
+        }
+
+        override fun onAudioSinkError(eventTime: AnalyticsListener.EventTime, audioSinkError: Exception) {
+            super.onAudioSinkError(eventTime, audioSinkError)
+            Log.e(TAG, "onAudioSinkError ${audioSinkError.message}")
+        }
+
+        override fun onLoadError(
+            eventTime: AnalyticsListener.EventTime,
+            loadEventInfo: LoadEventInfo,
+            mediaLoadData: MediaLoadData,
+            error: IOException,
+            wasCanceled: Boolean
+        ) {
+            super.onLoadError(eventTime, loadEventInfo, mediaLoadData, error, wasCanceled)
+            Log.e(TAG, "onLoadError ${error.message}")
+        }
+
+        override fun onPlayerError(eventTime: AnalyticsListener.EventTime, error: PlaybackException) {
+            super.onPlayerError(eventTime, error)
+            Log.e(TAG, "AnalyticsListener onPlayerError ${error.message}")
+        }
+
+        override fun onVideoCodecError(eventTime: AnalyticsListener.EventTime, videoCodecError: Exception) {
+            super.onVideoCodecError(eventTime, videoCodecError)
+            Log.e(TAG, "onPlayerError ${videoCodecError.message}")
+        }
+    }
+
+    private val exoPlayer: ExoPlayer by lazy {
+        val trackSelector = MultiTrackSelector(this)
+        val renderFactory = MultiTrackRenderFactory(this)
+        ExoPlayer.Builder(this)
+            .setTrackSelector(trackSelector)
+            .setRenderersFactory(renderFactory)
+            .build().apply {
+                addListener(listener)
+                addAnalyticsListener(analyticsListener)
+            }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
