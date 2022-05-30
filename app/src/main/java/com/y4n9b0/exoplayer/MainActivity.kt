@@ -87,7 +87,7 @@ class MainActivity : AppCompatActivity() {
         val trackSelector = MultiTrackSelector(this)
         val renderFactory = MultiTrackRenderFactory(this, 3)
         ExoPlayer.Builder(this)
-            .setTrackSelector(trackSelector)
+            // .setTrackSelector(trackSelector)
             .setRenderersFactory(renderFactory)
             .build().apply {
                 addListener(listener)
