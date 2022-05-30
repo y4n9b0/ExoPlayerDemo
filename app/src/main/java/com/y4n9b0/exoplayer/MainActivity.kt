@@ -85,7 +85,7 @@ class MainActivity : AppCompatActivity() {
 
     private val exoPlayer: ExoPlayer by lazy {
         val trackSelector = MultiTrackSelector(this)
-        val renderFactory = MultiTrackRenderFactory(this)
+        val renderFactory = MultiTrackRenderFactory(this, 3)
         ExoPlayer.Builder(this)
             .setTrackSelector(trackSelector)
             .setRenderersFactory(renderFactory)

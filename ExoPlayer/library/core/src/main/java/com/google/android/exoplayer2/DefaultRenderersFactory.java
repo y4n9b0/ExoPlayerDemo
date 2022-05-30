@@ -627,6 +627,11 @@ public class DefaultRenderersFactory implements RenderersFactory {
         .build();
   }
 
+  @Nullable
+  protected AudioSink buildAudioSink(){
+      return buildAudioSink(context, enableFloatOutput, enableAudioTrackPlaybackParams, enableOffload);
+  }
+
   /**
    * Returns the {@link MediaCodecAdapter.Factory} that will be used when creating {@link
    * com.google.android.exoplayer2.mediacodec.MediaCodecRenderer} instances.

@@ -332,11 +332,7 @@ import java.util.concurrent.TimeoutException;
       playlistMetadata = MediaMetadata.EMPTY;
       staticAndDynamicMediaMetadata = MediaMetadata.EMPTY;
       maskingWindowIndex = C.INDEX_UNSET;
-      if (Util.SDK_INT < 21) {
-        audioSessionId = initializeKeepSessionIdAudioTrack(C.AUDIO_SESSION_ID_UNSET);
-      } else {
-        audioSessionId = Util.generateAudioSessionIdV21(applicationContext);
-      }
+      audioSessionId = findAudioSessionIdFromRenderers();
       currentCues = ImmutableList.of();
       throwsWhenUsingWrongThread = true;
 
@@ -362,8 +358,7 @@ import java.util.concurrent.TimeoutException;
       deviceInfo = createDeviceInfo(streamVolumeManager);
       videoSize = VideoSize.UNKNOWN;
 
-      sendRendererMessage(TRACK_TYPE_AUDIO, MSG_SET_AUDIO_SESSION_ID, audioSessionId);
-      sendRendererMessage(TRACK_TYPE_VIDEO, MSG_SET_AUDIO_SESSION_ID, audioSessionId);
+      sendRendererMessageForAudioSessionId();
       sendRendererMessage(TRACK_TYPE_AUDIO, MSG_SET_AUDIO_ATTRIBUTES, audioAttributes);
       sendRendererMessage(TRACK_TYPE_VIDEO, MSG_SET_SCALING_MODE, videoScalingMode);
       sendRendererMessage(
@@ -376,6 +371,43 @@ import java.util.concurrent.TimeoutException;
     } finally {
       constructorFinished.open();
     }
+  }
+
+  private int findAudioSessionIdFromRenderers() {
+      int audioSessionId = C.AUDIO_SESSION_ID_UNSET;
+      if (renderers.length > 0) {
+          int firstAudioTrackSessionId = C.AUDIO_SESSION_ID_UNSET;
+          boolean foundMediaClockAudioTrackSessionId = false;
+          for (Renderer renderer : renderers) {
+              if (renderer.getTrackType() == TRACK_TYPE_AUDIO
+                      && renderer.getAudioSink() != null) {
+                  int currentSessionId = renderer.getAudioSink().getAudioSessionId();
+                  if (renderer.getMediaClock() != null) {
+                      // 寻找基准时钟所在音轨的 audioSessionId
+                      audioSessionId = currentSessionId;
+                      foundMediaClockAudioTrackSessionId = true;
+                      break;
+                  }
+                  if (firstAudioTrackSessionId == C.AUDIO_SESSION_ID_UNSET) {
+                      // 记录第一个音轨的 audioSessionId
+                      firstAudioTrackSessionId = currentSessionId;
+                  }
+              }
+          }
+          if (!foundMediaClockAudioTrackSessionId) {
+              // 没找着作为基准时钟的音轨，则使用第一个音轨的 audioSessionId
+              audioSessionId = firstAudioTrackSessionId;
+          }
+      }
+      if (audioSessionId == C.AUDIO_SESSION_ID_UNSET) {
+          // 所有 renderers 均未设置 audioSessionId
+          if (Util.SDK_INT < 21) {
+              audioSessionId = initializeKeepSessionIdAudioTrack(C.AUDIO_SESSION_ID_UNSET);
+          } else {
+              audioSessionId = Util.generateAudioSessionIdV21(applicationContext);
+          }
+      }
+      return audioSessionId;
   }
 
   @SuppressWarnings("deprecation") // Returning deprecated class.
@@ -1388,8 +1420,7 @@ import java.util.concurrent.TimeoutException;
       initializeKeepSessionIdAudioTrack(audioSessionId);
     }
     this.audioSessionId = audioSessionId;
-    sendRendererMessage(TRACK_TYPE_AUDIO, MSG_SET_AUDIO_SESSION_ID, audioSessionId);
-    sendRendererMessage(TRACK_TYPE_VIDEO, MSG_SET_AUDIO_SESSION_ID, audioSessionId);
+    sendRendererMessageForAudioSessionId();
     int finalAudioSessionId = audioSessionId;
     listeners.sendEvent(
         EVENT_AUDIO_SESSION_ID, listener -> listener.onAudioSessionIdChanged(finalAudioSessionId));
@@ -2606,6 +2637,16 @@ import java.util.concurrent.TimeoutException;
         createMessageInternal(renderer).setType(messageType).setPayload(payload).send();
       }
     }
+  }
+
+  private void sendRendererMessageForAudioSessionId() {
+      for (Renderer renderer : renderers) {
+          int trackType = renderer.getTrackType();
+          if (trackType == TRACK_TYPE_VIDEO ||
+                  (trackType == TRACK_TYPE_AUDIO && renderer.getMediaClock() != null)) {
+              createMessageInternal(renderer).setType(MSG_SET_AUDIO_SESSION_ID).setPayload(audioSessionId).send();
+          }
+      }
   }
 
   /**

@@ -4,11 +4,18 @@ import android.content.Context
 import android.os.Handler
 import com.google.android.exoplayer2.DefaultRenderersFactory
 import com.google.android.exoplayer2.Renderer
+import com.google.android.exoplayer2.audio.AudioCapabilities
 import com.google.android.exoplayer2.audio.AudioRendererEventListener
 import com.google.android.exoplayer2.audio.AudioSink
+import com.google.android.exoplayer2.audio.DefaultAudioSink
 import com.google.android.exoplayer2.mediacodec.MediaCodecSelector
+import com.google.android.exoplayer2.util.Util
+import kotlin.math.max
 
-class MultiTrackRenderFactory(context: Context) : DefaultRenderersFactory(context) {
+class MultiTrackRenderFactory(
+    context: Context,
+    private val multiAudioTrackCount: Int
+) : DefaultRenderersFactory(context) {
 
     override fun buildAudioRenderers(
         context: Context,
@@ -20,16 +27,20 @@ class MultiTrackRenderFactory(context: Context) : DefaultRenderersFactory(contex
         eventListener: AudioRendererEventListener,
         out: ArrayList<Renderer>
     ) {
-        repeat(3) {
+        repeat(max(1, multiAudioTrackCount)) {
             out.add(
                 MultiTrackAudioRender(
-                    trackIndex = it,
                     context = context,
                     mediaCodecSelector = mediaCodecSelector,
                     enableDecoderFallback = enableDecoderFallback,
                     eventHandler = eventHandler,
                     eventListener = eventListener,
-                    audioSink = audioSink
+                    audioSink = (
+                        buildAudioSink()
+                            ?: DefaultAudioSink.Builder()
+                                .setAudioCapabilities(AudioCapabilities.getCapabilities(context))
+                                .build()
+                        ).apply { audioSessionId = Util.generateAudioSessionIdV21(context) }
                 )
             )
         }

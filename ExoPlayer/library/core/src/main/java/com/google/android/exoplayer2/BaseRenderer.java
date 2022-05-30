@@ -20,6 +20,7 @@ import static java.lang.Math.max;
 
 import androidx.annotation.Nullable;
 import com.google.android.exoplayer2.analytics.PlayerId;
+import com.google.android.exoplayer2.audio.AudioSink;
 import com.google.android.exoplayer2.decoder.DecoderInputBuffer;
 import com.google.android.exoplayer2.decoder.DecoderInputBuffer.InsufficientCapacityException;
 import com.google.android.exoplayer2.source.SampleStream;
@@ -77,6 +78,12 @@ public abstract class BaseRenderer implements Renderer, RendererCapabilities {
   @Override
   @Nullable
   public MediaClock getMediaClock() {
+    return null;
+  }
+
+  @Override
+  @Nullable
+  public AudioSink getAudioSink() {
     return null;
   }
 

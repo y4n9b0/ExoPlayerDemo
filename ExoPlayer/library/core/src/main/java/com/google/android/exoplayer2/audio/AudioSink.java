@@ -418,6 +418,9 @@ public interface AudioSink {
   /** Sets the audio session id. */
   void setAudioSessionId(int audioSessionId);
 
+  /** Gets the audio session id. */
+  int getAudioSessionId();
+
   /** Sets the auxiliary effect. */
   void setAuxEffectInfo(AuxEffectInfo auxEffectInfo);
 

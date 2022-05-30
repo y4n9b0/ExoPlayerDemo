@@ -49,6 +49,7 @@ import com.google.android.exoplayer2.source.TrackGroupArray;
 import com.google.android.exoplayer2.source.ads.AdPlaybackState;
 import com.google.android.exoplayer2.text.TextRenderer;
 import com.google.android.exoplayer2.trackselection.ExoTrackSelection;
+import com.google.android.exoplayer2.trackselection.TrackSelection;
 import com.google.android.exoplayer2.trackselection.TrackSelector;
 import com.google.android.exoplayer2.trackselection.TrackSelectorResult;
 import com.google.android.exoplayer2.upstream.BandwidthMeter;
@@ -57,6 +58,8 @@ import com.google.android.exoplayer2.util.Assertions;
 import com.google.android.exoplayer2.util.Clock;
 import com.google.android.exoplayer2.util.HandlerWrapper;
 import com.google.android.exoplayer2.util.Log;
+import com.google.android.exoplayer2.util.MediaClockExt;
+import com.google.android.exoplayer2.util.MimeTypes;
 import com.google.android.exoplayer2.util.TraceUtil;
 import com.google.android.exoplayer2.util.Util;
 import com.google.common.base.Supplier;
@@ -2436,6 +2439,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
         renderers[i].reset();
       }
     }
+
+    selectMediaClockForRenderer(trackSelectorResult);
+
     // Enable the renderers.
     for (int i = 0; i < renderers.length; i++) {
       if (trackSelectorResult.isRendererEnabled(i)) {
@@ -2444,6 +2450,46 @@ import java.util.concurrent.atomic.AtomicBoolean;
     }
     readingMediaPeriod.allRenderersInCorrectState = true;
   }
+
+    /**
+     * [Fiture] Select 'voice' audio track renderer as the default MediaClock if audio track with <code>voice</code> label
+     * exists
+     *
+     * @param trackSelectorResult the TrackSelectorResult
+     */
+    private void selectMediaClockForRenderer(TrackSelectorResult trackSelectorResult) {
+        // 1. Find all audio renderers
+        final int length = renderers.length;
+        int mediaClockProviderIndex = length;
+        final List<Integer> audioRendererIndices = new ArrayList<>(length);
+        for (int i = 0; i < length; i++) {
+            if (trackSelectorResult.isRendererEnabled(i)) {
+                final ExoTrackSelection trackSelection = trackSelectorResult.selections[i];
+                final Format format = trackSelection.getSelectedFormat();
+                if (MimeTypes.isAudio(format.sampleMimeType)) {
+                    audioRendererIndices.add(i);
+                    if ("voice".equals(format.label)) {
+                        mediaClockProviderIndex = i;
+                    }
+                }
+            }
+        }
+
+        // 2. If voice audio track not exist, select the first audio renderer as MediaClock
+        if (mediaClockProviderIndex == length && !audioRendererIndices.isEmpty()) {
+            mediaClockProviderIndex = audioRendererIndices.get(0);
+        }
+
+        // 3. Select only one MediaClock for multiple audio renders which implement MediaClockExt
+        for (Integer i : audioRendererIndices) {
+            final int renderIndex = i;
+            final Renderer renderer = renderers[renderIndex];
+            if (renderer instanceof MediaClockExt) {
+                final MediaClockExt mediaClockExt = (MediaClockExt) renderer;
+                mediaClockExt.setProvideMediaClock(renderIndex == mediaClockProviderIndex);
+            }
+        }
+    }
 
   private void enableRenderer(int rendererIndex, boolean wasRendererEnabled)
       throws ExoPlaybackException {

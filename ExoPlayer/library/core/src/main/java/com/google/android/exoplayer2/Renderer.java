@@ -23,6 +23,7 @@ import androidx.annotation.IntDef;
 import androidx.annotation.Nullable;
 import com.google.android.exoplayer2.analytics.PlayerId;
 import com.google.android.exoplayer2.audio.AudioAttributes;
+import com.google.android.exoplayer2.audio.AudioSink;
 import com.google.android.exoplayer2.audio.AuxEffectInfo;
 import com.google.android.exoplayer2.source.SampleStream;
 import com.google.android.exoplayer2.util.MediaClock;
@@ -272,6 +273,9 @@ public interface Renderer extends PlayerMessage.Target {
    */
   @Nullable
   MediaClock getMediaClock();
+
+  @Nullable
+  AudioSink getAudioSink();
 
   /**
    * Returns the current state of the renderer.

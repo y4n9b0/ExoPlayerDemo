@@ -454,6 +454,11 @@ public class MediaCodecAudioRenderer extends MediaCodecRenderer implements Media
   }
 
   @Override
+  public AudioSink getAudioSink(){
+      return audioSink;
+  }
+
+  @Override
   protected float getCodecOperatingRateV23(
       float targetPlaybackSpeed, Format format, Format[] streamFormats) {
     // Use the highest known stream sample-rate up front, to avoid having to reconfigure the codec

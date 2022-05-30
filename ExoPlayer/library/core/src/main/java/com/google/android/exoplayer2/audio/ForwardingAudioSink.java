@@ -130,6 +130,11 @@ public class ForwardingAudioSink implements AudioSink {
   }
 
   @Override
+  public int getAudioSessionId() {
+    return sink.getAudioSessionId();
+  }
+
+  @Override
   public void setAuxEffectInfo(AuxEffectInfo auxEffectInfo) {
     sink.setAuxEffectInfo(auxEffectInfo);
   }

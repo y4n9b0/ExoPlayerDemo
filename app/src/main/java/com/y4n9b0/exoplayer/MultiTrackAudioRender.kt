@@ -10,9 +10,9 @@ import com.google.android.exoplayer2.audio.MediaCodecAudioRenderer
 import com.google.android.exoplayer2.mediacodec.MediaCodecAdapter
 import com.google.android.exoplayer2.mediacodec.MediaCodecSelector
 import com.google.android.exoplayer2.util.MediaClock
+import com.google.android.exoplayer2.util.MediaClockExt
 
 class MultiTrackAudioRender(
-    private val trackIndex: Int,
     context: Context,
     mediaCodecSelector: MediaCodecSelector,
     codecAdapterFactory: MediaCodecAdapter.Factory = MediaCodecAdapter.Factory.DEFAULT,
@@ -22,7 +22,7 @@ class MultiTrackAudioRender(
     audioSink: AudioSink = DefaultAudioSink.Builder()
         .setAudioCapabilities(AudioCapabilities.DEFAULT_AUDIO_CAPABILITIES)
         .build()
-) : MediaCodecAudioRenderer(
+) : MediaClockExt, MediaCodecAudioRenderer(
     context,
     codecAdapterFactory,
     mediaCodecSelector,
@@ -31,5 +31,14 @@ class MultiTrackAudioRender(
     eventListener,
     audioSink
 ) {
-    override fun getMediaClock(): MediaClock? = if (trackIndex == 0) super.getMediaClock() else null
+    // 由于支持多条音频轨道使用多个音频 Renderer 同时输出，需要确定哪个音频 Renderer 提供 MediaClock
+    private var provideMediaClock = false
+
+    override fun getMediaClock(): MediaClock? {
+        return if (provideMediaClock) this else null
+    }
+
+    override fun setProvideMediaClock(provideMediaClock: Boolean) {
+        this.provideMediaClock = provideMediaClock
+    }
 }
