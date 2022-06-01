@@ -27,6 +27,7 @@ import android.util.Pair;
 import android.util.SparseArray;
 import android.util.SparseBooleanArray;
 import androidx.annotation.IntDef;
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import com.google.android.exoplayer2.Bundleable;
 import com.google.android.exoplayer2.C;
@@ -1743,22 +1744,19 @@ public class DefaultTrackSelector extends MappingTrackSelector {
             definitions[selectedVideo.second] = selectedVideo.first;
         }
 
-        @Nullable
+        @NonNull
         List<Pair<ExoTrackSelection.Definition, Integer>> selectedAudioList =
                 selectAudioTrack(
                         mappedTrackInfo,
                         rendererFormatSupports,
-                        rendererMixedMimeTypeAdaptationSupports,
                         params);
-        if (selectedAudioList != null) {
-            for (Pair<ExoTrackSelection.Definition, Integer> selectedAudio : selectedAudioList) {
-                definitions[selectedAudio.second] = selectedAudio.first;
-            }
+        for (Pair<ExoTrackSelection.Definition, Integer> selectedAudio : selectedAudioList) {
+            definitions[selectedAudio.second] = selectedAudio.first;
         }
 
         @Nullable
         Pair<ExoTrackSelection.Definition, Integer> firstSelectedAudio = null;
-        if (selectedAudioList != null && !selectedAudioList.isEmpty()) {
+        if (!selectedAudioList.isEmpty()) {
             firstSelectedAudio = selectedAudioList.get(0);
         }
 
@@ -1831,19 +1829,16 @@ public class DefaultTrackSelector extends MappingTrackSelector {
      * @param mappedTrackInfo Mapped track information.
      * @param rendererFormatSupports The {@link Capabilities} for each mapped track, indexed by
      *     renderer, track group and track (in that order).
-     * @param rendererMixedMimeTypeAdaptationSupports The {@link AdaptiveSupport} for mixed MIME type
-     *     adaptation for the renderer.
      * @param params The selector's current constraint parameters.
      * @return A list of pair of the selected {@link ExoTrackSelection.Definition} and the corresponding
-     *     renderer index, or null if no selection was made.
+     *     renderer index, or an empty list if no selection was made.
      * @throws ExoPlaybackException If an error occurs while selecting the tracks.
      */
     @SuppressLint("WrongConstant") // Lint doesn't understand arrays of IntDefs.
-    @Nullable
+    @NonNull
     protected List<Pair<ExoTrackSelection.Definition, Integer>> selectAudioTrack(
             MappedTrackInfo mappedTrackInfo,
             @Capabilities int[][][] rendererFormatSupports,
-            @AdaptiveSupport int[] rendererMixedMimeTypeAdaptationSupports,
             Parameters params)
             throws ExoPlaybackException {
         boolean hasVideoRendererWithMappedTracks = false;
@@ -1860,8 +1855,7 @@ public class DefaultTrackSelector extends MappingTrackSelector {
                 rendererFormatSupports,
                 (rendererIndex, group, support) ->
                         AudioTrackInfo.createForTrackGroup(
-                                rendererIndex, group, params, support, hasVideoRendererWithMappedTracksFinal),
-                AudioTrackInfo::compareSelections);
+                                rendererIndex, group, params, support, hasVideoRendererWithMappedTracksFinal));
     }
 
     // Text track selection implementation.
@@ -1940,14 +1934,13 @@ public class DefaultTrackSelector extends MappingTrackSelector {
                 : new ExoTrackSelection.Definition(selectedGroup, selectedTrackIndex);
     }
 
-    @Nullable
+    @NonNull
     private <T extends TrackInfo<T>> List<Pair<ExoTrackSelection.Definition, Integer>> selectTracksForAudio(
             MappedTrackInfo mappedTrackInfo,
             @RendererCapabilities.Capabilities int[][][] formatSupport,
-            TrackInfo.Factory<T> trackInfoFactory,
-            Comparator<List<T>> selectionComparator
+            TrackInfo.Factory<T> trackInfoFactory
     ) {
-        ArrayList<List<T>> possibleSelections = new ArrayList<>();
+        List<Pair<ExoTrackSelection.Definition, Integer>> pairs = new ArrayList<>();
         int rendererCount = mappedTrackInfo.getRendererCount();
         for (int rendererIndex = 0; rendererIndex < rendererCount; rendererIndex++) {
             if (C.TRACK_TYPE_AUDIO == mappedTrackInfo.getRendererType(rendererIndex)) {
@@ -1979,25 +1972,17 @@ public class DefaultTrackSelector extends MappingTrackSelector {
                                 }
                             }
                         }
-                        possibleSelections.add(selection);
+
+                        int[] trackIndices = new int[selection.size()];
+                        for (int i = 0; i < selection.size(); i++) {
+                            trackIndices[i] = selection.get(i).trackIndex;
+                        }
+                        ExoTrackSelection.Definition definition = new ExoTrackSelection.Definition(trackInfo.trackGroup,
+                                trackIndices);
+                        pairs.add(Pair.create(definition, trackInfo.rendererIndex));
                     }
                 }
             }
-        }
-        if (possibleSelections.isEmpty()) {
-            return null;
-        }
-
-        List<Pair<ExoTrackSelection.Definition, Integer>> pairs = new ArrayList<>(possibleSelections.size());
-        for (List<T> selection : possibleSelections) {
-            int[] trackIndices = new int[selection.size()];
-            for (int i = 0; i < selection.size(); i++) {
-                trackIndices[i] = selection.get(i).trackIndex;
-            }
-            T trackInfo = selection.get(0);
-            ExoTrackSelection.Definition definition = new ExoTrackSelection.Definition(trackInfo.trackGroup,
-                    trackIndices);
-            pairs.add(Pair.create(definition, trackInfo.rendererIndex));
         }
         return pairs;
     }
