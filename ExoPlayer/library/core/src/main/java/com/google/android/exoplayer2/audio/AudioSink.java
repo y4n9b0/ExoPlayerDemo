@@ -446,6 +446,8 @@ public interface AudioSink {
    */
   void setVolume(float volume);
 
+  float getVolume();
+
   /** Pauses playback. */
   void pause();
 

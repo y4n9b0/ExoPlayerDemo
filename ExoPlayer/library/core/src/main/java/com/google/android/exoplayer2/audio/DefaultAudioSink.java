@@ -1387,6 +1387,11 @@ public final class DefaultAudioSink implements AudioSink {
   }
 
   @Override
+  public float getVolume(){
+    return volume;
+  }
+
+  @Override
   public void pause() {
     playing = false;
     if (isAudioTrackInitialized() && audioTrackPositionTracker.pause()) {

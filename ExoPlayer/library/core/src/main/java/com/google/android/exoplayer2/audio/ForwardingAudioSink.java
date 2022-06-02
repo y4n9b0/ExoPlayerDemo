@@ -155,6 +155,11 @@ public class ForwardingAudioSink implements AudioSink {
   }
 
   @Override
+  public float getVolume() {
+    return sink.getVolume();
+  }
+
+  @Override
   public void pause() {
     sink.pause();
   }
