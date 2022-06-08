@@ -24,9 +24,11 @@ import static java.lang.annotation.ElementType.PARAMETER;
 import static java.lang.annotation.ElementType.TYPE_USE;
 
 import android.util.Pair;
+
 import androidx.annotation.IntDef;
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
+
 import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.C.FormatSupport;
 import com.google.android.exoplayer2.ExoPlaybackException;
@@ -43,11 +45,13 @@ import com.google.android.exoplayer2.source.TrackGroupArray;
 import com.google.android.exoplayer2.util.MimeTypes;
 import com.google.android.exoplayer2.util.Util;
 import com.google.common.collect.ImmutableList;
+
 import java.lang.annotation.Documented;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.util.Arrays;
+
 import org.checkerframework.checker.nullness.compatqual.NullableType;
 
 /**
@@ -76,7 +80,9 @@ public abstract class MappingTrackSelector extends TrackSelector {
                 RENDERER_SUPPORT_EXCEEDS_CAPABILITIES_TRACKS,
                 RENDERER_SUPPORT_PLAYABLE_TRACKS
         })
-        public @interface RendererSupport {}
+        public @interface RendererSupport {
+        }
+
         /** The renderer does not have any associated tracks. */
         public static final int RENDERER_SUPPORT_NO_TRACKS = 0;
         /**
@@ -324,7 +330,8 @@ public abstract class MappingTrackSelector extends TrackSelector {
         }
     }
 
-    @Nullable private MappedTrackInfo currentMappedTrackInfo;
+    @Nullable
+    private MappedTrackInfo currentMappedTrackInfo;
 
     /**
      * Returns the mapping information for the currently active track selection, or null if no
@@ -370,8 +377,8 @@ public abstract class MappingTrackSelector extends TrackSelector {
         for (int groupIndex = 0; groupIndex < trackGroups.length; groupIndex++) {
             TrackGroup group = trackGroups.get(groupIndex);
             // Associate the group to a preferred renderer.
-            boolean preferUnassociatedRenderer =
-                    MimeTypes.getTrackType(group.getFormat(0).sampleMimeType) == C.TRACK_TYPE_METADATA;
+            @C.TrackType int trackType = MimeTypes.getTrackType(group.getFormat(0).sampleMimeType);
+            boolean preferUnassociatedRenderer = trackType == C.TRACK_TYPE_METADATA || trackType == C.TRACK_TYPE_AUDIO;
             int rendererIndex =
                     findRenderer(
                             rendererCapabilities, group, rendererTrackGroupCounts, preferUnassociatedRenderer);
@@ -502,17 +509,14 @@ public abstract class MappingTrackSelector extends TrackSelector {
         for (int rendererIndex = 0; rendererIndex < rendererCapabilities.length; rendererIndex++) {
             RendererCapabilities rendererCapability = rendererCapabilities[rendererIndex];
             @FormatSupport int formatSupportLevel = C.FORMAT_UNSUPPORTED_TYPE;
-            boolean rendererIsUnassociated = rendererTrackGroupCounts[rendererIndex] == 0;
             for (int trackIndex = 0; trackIndex < group.length; trackIndex++) {
-                if (MimeTypes.isAudio(group.getFormat(trackIndex).sampleMimeType) && !rendererIsUnassociated) {
-                    continue;
-                }
                 @FormatSupport
                 int trackFormatSupportLevel =
                         RendererCapabilities.getFormatSupport(
                                 rendererCapability.supportsFormat(group.getFormat(trackIndex)));
                 formatSupportLevel = max(formatSupportLevel, trackFormatSupportLevel);
             }
+            boolean rendererIsUnassociated = rendererTrackGroupCounts[rendererIndex] == 0;
             if (formatSupportLevel > bestFormatSupportLevel
                     || (formatSupportLevel == bestFormatSupportLevel
                     && preferUnassociatedRenderer
