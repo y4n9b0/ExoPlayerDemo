@@ -24,22 +24,24 @@ import com.google.android.exoplayer2.util.MimeTypes;
 import com.google.android.exoplayer2.util.NalUnitUtil;
 import com.google.android.exoplayer2.util.ParsableByteArray;
 import com.google.android.exoplayer2.video.AvcConfig;
+import com.google.android.exoplayer2.video.HevcConfig;
 
-/** Parses video tags from an FLV stream and extracts H.264 nal units. */
+/** Parses video tags from an FLV stream and extracts H.264/H.265 nal units. */
 /* package */ final class VideoTagPayloadReader extends TagPayloadReader {
 
   private static final String TAG = "VideoTagPayloadReader";
 
   // Video codec.
   private static final int VIDEO_CODEC_AVC = 7;
+  private static final int VIDEO_CODEC_HEVC = 12;
 
   // Frame types.
   private static final int VIDEO_FRAME_KEYFRAME = 1;
   private static final int VIDEO_FRAME_VIDEO_INFO = 5;
 
   // Packet types.
-  private static final int AVC_PACKET_TYPE_SEQUENCE_HEADER = 0;
-  private static final int AVC_PACKET_TYPE_AVC_NALU = 1;
+  private static final int AVC_AND_HEVC_PACKET_TYPE_SEQUENCE_HEADER = 0;
+  private static final int AVC_AND_HEVC_PACKET_TYPE_AVC_NALU = 1;
 
   // SEI payload types
   private static final int SEI_PAYLOAD_TYPE_USER_DATA_UNREGISTERED = 5;
@@ -56,6 +58,8 @@ import com.google.android.exoplayer2.video.AvcConfig;
   private int frameType;
 
   private final TrackOutput seiUserDataUnregisteredOutput;
+
+  private int videoCodec;
 
   /**
    *
@@ -79,9 +83,9 @@ import com.google.android.exoplayer2.video.AvcConfig;
   protected boolean parseHeader(ParsableByteArray data) throws UnsupportedFormatException {
     int header = data.readUnsignedByte();
     int frameType = (header >> 4) & 0x0F;
-    int videoCodec = (header & 0x0F);
-    // Support just H.264 encoded content.
-    if (videoCodec != VIDEO_CODEC_AVC) {
+    videoCodec = (header & 0x0F);
+    // Support both H.264 & H.265 encoded content.
+    if (videoCodec != VIDEO_CODEC_AVC && videoCodec != VIDEO_CODEC_HEVC) {
       throw new UnsupportedFormatException("Video format not supported: " + videoCodec);
     }
     this.frameType = frameType;
@@ -94,22 +98,31 @@ import com.google.android.exoplayer2.video.AvcConfig;
     int compositionTimeMs = data.readInt24();
 
     timeUs += compositionTimeMs * 1000L;
-    // Parse avc sequence header in case this was not done before.
-    if (packetType == AVC_PACKET_TYPE_SEQUENCE_HEADER && !hasOutputFormat) {
+    // Parse avc/hevc sequence header in case this was not done before.
+    if (packetType == AVC_AND_HEVC_PACKET_TYPE_SEQUENCE_HEADER && !hasOutputFormat) {
       ParsableByteArray videoSequence = new ParsableByteArray(new byte[data.bytesLeft()]);
       data.readBytes(videoSequence.getData(), 0, data.bytesLeft());
-      AvcConfig avcConfig = AvcConfig.parse(videoSequence);
-      nalUnitLengthFieldLength = avcConfig.nalUnitLengthFieldLength;
-      // Construct and output the format.
-      Format format =
-          new Format.Builder()
-              .setSampleMimeType(MimeTypes.VIDEO_H264)
-              .setCodecs(avcConfig.codecs)
-              .setWidth(avcConfig.width)
-              .setHeight(avcConfig.height)
-              .setPixelWidthHeightRatio(avcConfig.pixelWidthHeightRatio)
-              .setInitializationData(avcConfig.initializationData)
-              .build();
+      Format.Builder builder = new Format.Builder();
+      if (videoCodec == VIDEO_CODEC_AVC) {
+        AvcConfig avcConfig = AvcConfig.parse(videoSequence);
+        nalUnitLengthFieldLength = avcConfig.nalUnitLengthFieldLength;
+        builder.setSampleMimeType(MimeTypes.VIDEO_H264)
+            .setCodecs(avcConfig.codecs)
+            .setWidth(avcConfig.width)
+            .setHeight(avcConfig.height)
+            .setPixelWidthHeightRatio(avcConfig.pixelWidthHeightRatio)
+            .setInitializationData(avcConfig.initializationData);
+      } else if (videoCodec == VIDEO_CODEC_HEVC) {
+        HevcConfig hevcConfig = HevcConfig.parse(videoSequence);
+        nalUnitLengthFieldLength = hevcConfig.nalUnitLengthFieldLength;
+        builder.setSampleMimeType(MimeTypes.VIDEO_H265)
+            .setCodecs(hevcConfig.codecs)
+            .setWidth(hevcConfig.width)
+            .setHeight(hevcConfig.height)
+            .setPixelWidthHeightRatio(hevcConfig.pixelWidthHeightRatio)
+            .setInitializationData(hevcConfig.initializationData);
+      }
+      Format format = builder.build();
       output.format(format);
       Format seiFormat = new Format.Builder()
           .setSampleMimeType(MimeTypes.APPLICATION_SEI_USER_DATA_UNREGISTERED)
@@ -117,7 +130,7 @@ import com.google.android.exoplayer2.video.AvcConfig;
       seiUserDataUnregisteredOutput.format(seiFormat);
       hasOutputFormat = true;
       return false;
-    } else if (packetType == AVC_PACKET_TYPE_AVC_NALU && hasOutputFormat) {
+    } else if (packetType == AVC_AND_HEVC_PACKET_TYPE_AVC_NALU && hasOutputFormat) {
       boolean isKeyframe = frameType == VIDEO_FRAME_KEYFRAME;
       if (!hasOutputKeyframe && !isKeyframe) {
         return false;
@@ -152,13 +165,14 @@ import com.google.android.exoplayer2.video.AvcConfig;
 
         final byte[] nalUnitData = new byte[bytesToWrite];
         System.arraycopy(data.getData(), data.getPosition() - bytesToWrite, nalUnitData, 0, bytesToWrite);
-        if (NalUnitUtil.isNalUnitSei(MimeTypes.VIDEO_H264, nalUnitData[0])) {
+        final String mimeType = videoCodec == VIDEO_CODEC_AVC ? MimeTypes.VIDEO_H264 : MimeTypes.VIDEO_H265;
+        if (NalUnitUtil.isNalUnitSei(mimeType, nalUnitData[0])) {
           seiBuffer.reset(nalUnitData);
           // Unescape and process the SEI NAL unit.
           int unescapedLength = NalUnitUtil.unescapeStream(seiBuffer.getData(), seiBuffer.limit());
           seiBuffer.setLimit(unescapedLength);
-          // Skip NAL unit type byte
-          seiBuffer.skipBytes(1);
+          // Skip NAL unit type byte, if the format is H.265/HEVC the NAL unit header has two bytes so skip one more byte.
+          seiBuffer.skipBytes(MimeTypes.VIDEO_H265.equals(mimeType) ? 2 : 1);
           while (seiBuffer.bytesLeft() > 1 /* last byte will be rbsp_trailing_bits */) {
             int payloadType = readNon255TerminatedValue(seiBuffer);
             int payloadSize = readNon255TerminatedValue(seiBuffer);
