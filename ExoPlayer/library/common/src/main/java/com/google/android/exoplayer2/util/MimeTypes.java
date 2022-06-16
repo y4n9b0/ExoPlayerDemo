@@ -131,6 +131,8 @@ public final class MimeTypes {
   public static final String APPLICATION_ICY = BASE_TYPE_APPLICATION + "/x-icy";
   public static final String APPLICATION_AIT = BASE_TYPE_APPLICATION + "/vnd.dvb.ait";
   public static final String APPLICATION_RTSP = BASE_TYPE_APPLICATION + "/x-rtsp";
+  public static final String APPLICATION_SEI_USER_DATA_UNREGISTERED =
+          BASE_TYPE_APPLICATION + "/x-sei-user-data-unregistered";
 
   // image/ MIME types
 
@@ -514,7 +516,8 @@ public final class MimeTypes {
       return C.TRACK_TYPE_IMAGE;
     } else if (APPLICATION_ID3.equals(mimeType)
         || APPLICATION_EMSG.equals(mimeType)
-        || APPLICATION_SCTE35.equals(mimeType)) {
+        || APPLICATION_SCTE35.equals(mimeType)
+        || APPLICATION_SEI_USER_DATA_UNREGISTERED.equals(mimeType)) {
       return C.TRACK_TYPE_METADATA;
     } else if (APPLICATION_CAMERA_MOTION.equals(mimeType)) {
       return C.TRACK_TYPE_CAMERA_MOTION;

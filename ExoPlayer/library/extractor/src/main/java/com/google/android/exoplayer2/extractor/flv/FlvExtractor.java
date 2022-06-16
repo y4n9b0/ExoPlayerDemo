@@ -206,7 +206,8 @@ public final class FlvExtractor implements Extractor {
     }
     if (hasVideo && videoReader == null) {
       videoReader =
-          new VideoTagPayloadReader(extractorOutput.track(TAG_TYPE_VIDEO, C.TRACK_TYPE_VIDEO));
+          new VideoTagPayloadReader(extractorOutput.track(TAG_TYPE_VIDEO, C.TRACK_TYPE_VIDEO),
+              extractorOutput.track(0, C.TRACK_TYPE_METADATA));
     }
     extractorOutput.endTracks();
 

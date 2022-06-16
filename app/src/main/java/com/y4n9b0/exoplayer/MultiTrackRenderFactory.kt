@@ -2,6 +2,7 @@ package com.y4n9b0.exoplayer
 
 import android.content.Context
 import android.os.Handler
+import android.os.Looper
 import com.google.android.exoplayer2.DefaultRenderersFactory
 import com.google.android.exoplayer2.Renderer
 import com.google.android.exoplayer2.audio.AudioCapabilities
@@ -9,6 +10,8 @@ import com.google.android.exoplayer2.audio.AudioRendererEventListener
 import com.google.android.exoplayer2.audio.AudioSink
 import com.google.android.exoplayer2.audio.DefaultAudioSink
 import com.google.android.exoplayer2.mediacodec.MediaCodecSelector
+import com.google.android.exoplayer2.metadata.MetadataOutput
+import com.google.android.exoplayer2.metadata.MetadataRenderer
 import com.google.android.exoplayer2.util.Util
 import kotlin.math.max
 
@@ -103,5 +106,15 @@ class MultiTrackRenderFactory(
             // The extension is present, but instantiation failed.
             throw RuntimeException("Error instantiating FFmpeg extension", e)
         }
+    }
+
+    override fun buildMetadataRenderers(
+        context: Context,
+        output: MetadataOutput,
+        outputLooper: Looper,
+        extensionRendererMode: Int,
+        out: ArrayList<Renderer>
+    ) {
+        out.add(MetadataRenderer(output, outputLooper, FitureMetadataDecoderFactory()))
     }
 }

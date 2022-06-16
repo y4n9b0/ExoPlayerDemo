@@ -12,6 +12,7 @@ import com.google.android.exoplayer2.Player
 import com.google.android.exoplayer2.analytics.AnalyticsListener
 import com.google.android.exoplayer2.ext.rtmp.RtmpDataSource
 import com.google.android.exoplayer2.extractor.flv.FlvExtractor
+import com.google.android.exoplayer2.metadata.Metadata
 import com.google.android.exoplayer2.offline.Download
 import com.google.android.exoplayer2.offline.DownloadRequest
 import com.google.android.exoplayer2.offline.DownloadService
@@ -80,6 +81,16 @@ class MainActivity : AppCompatActivity() {
         override fun onVideoCodecError(eventTime: AnalyticsListener.EventTime, videoCodecError: Exception) {
             super.onVideoCodecError(eventTime, videoCodecError)
             Log.e(TAG, "onPlayerError ${videoCodecError.message}")
+        }
+
+        override fun onMetadata(eventTime: AnalyticsListener.EventTime, metadata: Metadata) {
+            val length = metadata.length()
+            for (i in 0 until length) {
+                val seiUserDataUnregistered = metadata[i] as? SeiUserDataUnregistered ?: continue
+                seiUserDataUnregistered.payload?.apply {
+                    Log.d(TAG, "onMetadata sei:$this")
+                }
+            }
         }
     }
 

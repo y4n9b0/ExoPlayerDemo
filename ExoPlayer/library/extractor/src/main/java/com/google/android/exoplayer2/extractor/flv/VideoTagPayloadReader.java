@@ -19,6 +19,7 @@ import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.Format;
 import com.google.android.exoplayer2.ParserException;
 import com.google.android.exoplayer2.extractor.TrackOutput;
+import com.google.android.exoplayer2.util.Log;
 import com.google.android.exoplayer2.util.MimeTypes;
 import com.google.android.exoplayer2.util.NalUnitUtil;
 import com.google.android.exoplayer2.util.ParsableByteArray;
@@ -26,6 +27,8 @@ import com.google.android.exoplayer2.video.AvcConfig;
 
 /** Parses video tags from an FLV stream and extracts H.264 nal units. */
 /* package */ final class VideoTagPayloadReader extends TagPayloadReader {
+
+  private static final String TAG = "VideoTagPayloadReader";
 
   // Video codec.
   private static final int VIDEO_CODEC_AVC = 7;
@@ -38,9 +41,13 @@ import com.google.android.exoplayer2.video.AvcConfig;
   private static final int AVC_PACKET_TYPE_SEQUENCE_HEADER = 0;
   private static final int AVC_PACKET_TYPE_AVC_NALU = 1;
 
+  // SEI payload types
+  private static final int SEI_PAYLOAD_TYPE_USER_DATA_UNREGISTERED = 5;
+
   // Temporary arrays.
   private final ParsableByteArray nalStartCode;
   private final ParsableByteArray nalLength;
+  private final ParsableByteArray seiBuffer;
   private int nalUnitLengthFieldLength;
 
   // State variables.
@@ -48,11 +55,19 @@ import com.google.android.exoplayer2.video.AvcConfig;
   private boolean hasOutputKeyframe;
   private int frameType;
 
-  /** @param output A {@link TrackOutput} to which samples should be written. */
-  public VideoTagPayloadReader(TrackOutput output) {
+  private final TrackOutput seiUserDataUnregisteredOutput;
+
+  /**
+   *
+   * @param output A {@link TrackOutput} to which samples should be written.
+   * @param seiUserDataUnregisteredOutput A {@link TrackOutput} to which sei user data unregistered samples should be written.
+   */
+  public VideoTagPayloadReader(TrackOutput output, TrackOutput seiUserDataUnregisteredOutput) {
     super(output);
+    this.seiUserDataUnregisteredOutput = seiUserDataUnregisteredOutput;
     nalStartCode = new ParsableByteArray(NalUnitUtil.NAL_START_CODE);
     nalLength = new ParsableByteArray(4);
+    seiBuffer = new ParsableByteArray();
   }
 
   @Override
@@ -96,6 +111,10 @@ import com.google.android.exoplayer2.video.AvcConfig;
               .setInitializationData(avcConfig.initializationData)
               .build();
       output.format(format);
+      Format seiFormat = new Format.Builder()
+          .setSampleMimeType(MimeTypes.APPLICATION_SEI_USER_DATA_UNREGISTERED)
+          .build();
+      seiUserDataUnregisteredOutput.format(seiFormat);
       hasOutputFormat = true;
       return false;
     } else if (packetType == AVC_PACKET_TYPE_AVC_NALU && hasOutputFormat) {
@@ -130,6 +149,35 @@ import com.google.android.exoplayer2.video.AvcConfig;
         // Write the payload of the NAL unit.
         output.sampleData(data, bytesToWrite);
         bytesWritten += bytesToWrite;
+
+        final byte[] nalUnitData = new byte[bytesToWrite];
+        System.arraycopy(data.getData(), data.getPosition() - bytesToWrite, nalUnitData, 0, bytesToWrite);
+        if (NalUnitUtil.isNalUnitSei(MimeTypes.VIDEO_H264, nalUnitData[0])) {
+          seiBuffer.reset(nalUnitData);
+          // Unescape and process the SEI NAL unit.
+          int unescapedLength = NalUnitUtil.unescapeStream(seiBuffer.getData(), seiBuffer.limit());
+          seiBuffer.setLimit(unescapedLength);
+          // Skip NAL unit type byte
+          seiBuffer.skipBytes(1);
+          while (seiBuffer.bytesLeft() > 1 /* last byte will be rbsp_trailing_bits */) {
+            int payloadType = readNon255TerminatedValue(seiBuffer);
+            int payloadSize = readNon255TerminatedValue(seiBuffer);
+            int nextPayloadPosition = seiBuffer.getPosition() + payloadSize;
+            // Process the payload.
+            if (payloadSize == -1 || payloadSize > seiBuffer.bytesLeft()) {
+              // This might occur if we're trying to read an encrypted SEI NAL unit.
+              Log.w(TAG, "parsePayload - Skipping remainder of malformed SEI NAL unit.");
+              nextPayloadPosition = seiBuffer.limit();
+            } else if (payloadType == SEI_PAYLOAD_TYPE_USER_DATA_UNREGISTERED && payloadSize > 16) {
+              // Skip uuid(16)
+              seiBuffer.skipBytes(16);
+              seiUserDataUnregisteredOutput.sampleData(seiBuffer, payloadSize - 16);
+              seiUserDataUnregisteredOutput.sampleMetadata(
+                  timeUs, isKeyframe ? C.BUFFER_FLAG_KEY_FRAME : 0, payloadSize - 16, 0, null);
+            }
+            seiBuffer.setPosition(nextPayloadPosition);
+          }
+        }
       }
       output.sampleMetadata(
           timeUs, isKeyframe ? C.BUFFER_FLAG_KEY_FRAME : 0, bytesWritten, 0, null);
@@ -138,5 +186,26 @@ import com.google.android.exoplayer2.video.AvcConfig;
     } else {
       return false;
     }
+  }
+
+  /**
+   * Reads a value from the provided buffer consisting of zero or more 0xFF bytes followed by a
+   * terminating byte not equal to 0xFF. The returned value is ((0xFF * N) + T), where N is the
+   * number of 0xFF bytes and T is the value of the terminating byte.
+   *
+   * @param buffer The buffer from which to read the value.
+   * @return The read value, or -1 if the end of the buffer is reached before a value is read.
+   */
+  private static int readNon255TerminatedValue(ParsableByteArray buffer) {
+    int b;
+    int value = 0;
+    do {
+      if (buffer.bytesLeft() == 0) {
+        return -1;
+      }
+      b = buffer.readUnsignedByte();
+      value += b;
+      } while (b == 0xFF);
+    return value;
   }
 }
