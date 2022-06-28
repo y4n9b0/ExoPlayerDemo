@@ -1,25 +1,31 @@
 package com.y4n9b0.exoplayer
 
-import com.google.android.exoplayer2.C
+import android.util.LruCache
 import com.google.android.exoplayer2.upstream.cache.Cache
 import com.google.android.exoplayer2.upstream.cache.CacheEvictor
 import com.google.android.exoplayer2.upstream.cache.CacheSpan
-import java.util.*
+import java.util.TreeSet
 
-class LruCacheEvictor(val maxCount: Int) : CacheEvictor {
+/**
+ * maxSize - 最大视频个数（而非视频大小 size）
+ * 视频大小 Size 逐出策略请使用 [com.google.android.exoplayer2.upstream.cache.LeastRecentlyUsedCacheEvictor]
+ */
+class LruCacheEvictor(private val maxSize: Int) : CacheEvictor {
 
-    var currentCount = 0
-    val leastRecentlyUsed: TreeSet<CacheSpan> = TreeSet { lhs, rhs ->
-        val lastTouchTimestampDelta: Long = lhs.lastTouchTimestamp - rhs.lastTouchTimestamp
-        if (lastTouchTimestampDelta == 0L) {
-            // Use the standard compareTo method as a tie-break.
-            lhs.compareTo(rhs)
-        } else if (lhs.lastTouchTimestamp < rhs.lastTouchTimestamp) -1 else 1
+    private val leastRecentlyUsed: CacheSpanLruCache = CacheSpanLruCache(maxSize)
+    private val comparator: Comparator<CacheSpan> by lazy {
+        Comparator { lhs, rhs ->
+            val lastTouchTimestampDelta: Long = lhs.lastTouchTimestamp - rhs.lastTouchTimestamp
+            if (lastTouchTimestampDelta == 0L) {
+                // Use the standard compareTo method as a tie-break.
+                lhs.compareTo(rhs)
+            } else if (lhs.lastTouchTimestamp < rhs.lastTouchTimestamp) -1 else 1
+        }
     }
 
     init {
-        require(maxCount >= 1) {
-            "maxCount=$maxCount, you should not use Cache if you wanna cache nothing!"
+        require(maxSize >= 1) {
+            "maxSize=$maxSize, should not use Cache if you wanna cache nothing!"
         }
     }
 
@@ -30,30 +36,44 @@ class LruCacheEvictor(val maxCount: Int) : CacheEvictor {
     }
 
     override fun onStartFile(cache: Cache, key: String, position: Long, length: Long) {
-        if (length != C.LENGTH_UNSET.toLong()) {
-            evictCache(cache)
-        }
+        // Do nothing.
     }
 
     override fun onSpanAdded(cache: Cache, span: CacheSpan) {
-        leastRecentlyUsed.add(span)
-        currentCount++
-        evictCache(cache)
+        leastRecentlyUsed.cache = cache
+        val cacheSpanTreeSet: TreeSet<CacheSpan> = leastRecentlyUsed.get(span.key) ?: TreeSet(comparator)
+        cacheSpanTreeSet.add(span)
+        leastRecentlyUsed.put(span.key, cacheSpanTreeSet)
     }
 
     override fun onSpanRemoved(cache: Cache, span: CacheSpan) {
-        leastRecentlyUsed.remove(span)
-        currentCount--
+        leastRecentlyUsed.cache = cache
+        val cacheSpanTreeSet: TreeSet<CacheSpan>? = leastRecentlyUsed.get(span.key)
+        cacheSpanTreeSet?.apply {
+            remove(span)
+            if (isEmpty()) {
+                leastRecentlyUsed.remove(span.key)
+            }
+        }
     }
 
     override fun onSpanTouched(cache: Cache, oldSpan: CacheSpan, newSpan: CacheSpan) {
         onSpanRemoved(cache, oldSpan)
         onSpanAdded(cache, newSpan)
     }
+}
 
-    private fun evictCache(cache: Cache) {
-        while (currentCount > maxCount && !leastRecentlyUsed.isEmpty()) {
-            cache.removeSpan(leastRecentlyUsed.first())
+private class CacheSpanLruCache(maxSize: Int) : LruCache<String, TreeSet<CacheSpan>>(maxSize) {
+    lateinit var cache: Cache
+
+    override fun entryRemoved(
+        evicted: Boolean,
+        key: String?,
+        oldValue: TreeSet<CacheSpan>?,
+        newValue: TreeSet<CacheSpan>?
+    ) {
+        if (evicted) {
+            oldValue?.onEach(cache::removeSpan)
         }
     }
 }
