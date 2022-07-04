@@ -325,7 +325,7 @@ public class DownloadTracker {
       }
       trackSelectionDialog =
           TrackSelectionDialog.createForMappedTrackInfoAndParameters(
-              /* titleId= */ R.string.exo_download_description,
+              /* titleId= */ com.google.android.exoplayer2.core.R.string.exo_download_description,
               mappedTrackInfo,
               trackSelectorParameters,
               /* allowAdaptiveSelections= */ false,
