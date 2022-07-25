@@ -713,6 +713,12 @@ public class DefaultAnalyticsCollector implements AnalyticsCollector {
         eventTime, AnalyticsListener.EVENT_CUES, listener -> listener.onCues(eventTime, cues));
   }
 
+  @Override
+  public void onLedCues(List<Cue> cues) {
+    EventTime eventTime = generateCurrentPlayerMediaPeriodEventTime();
+    sendEvent(eventTime, AnalyticsListener.EVENT_LED_CUES, listener -> listener.onLedCues(eventTime, cues));
+  }
+
   @SuppressWarnings("deprecation") // Implementing and calling deprecated listener method.
   @Override
   public final void onSeekProcessed() {

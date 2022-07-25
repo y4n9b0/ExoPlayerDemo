@@ -48,7 +48,7 @@ import java.util.List;
  * obtained from a {@link SubtitleDecoderFactory}. The actual rendering of the subtitle {@link Cue}s
  * is delegated to a {@link TextOutput}.
  */
-public final class TextRenderer extends BaseRenderer implements Callback {
+public class TextRenderer extends BaseRenderer implements Callback {
 
   private static final String TAG = "TextRenderer";
 
@@ -79,7 +79,7 @@ public final class TextRenderer extends BaseRenderer implements Callback {
   private static final int MSG_UPDATE_OUTPUT = 0;
 
   @Nullable private final Handler outputHandler;
-  private final TextOutput output;
+  protected final TextOutput output;
   private final SubtitleDecoderFactory decoderFactory;
   private final FormatHolder formatHolder;
 
@@ -134,7 +134,9 @@ public final class TextRenderer extends BaseRenderer implements Callback {
 
   @Override
   public @Capabilities int supportsFormat(Format format) {
-    if (decoderFactory.supportsFormat(format)) {
+    if (format.isLed()) {
+      return RendererCapabilities.create(C.FORMAT_UNSUPPORTED_TYPE);
+    } else if (decoderFactory.supportsFormat(format)) {
       return RendererCapabilities.create(
           format.cryptoType == C.CRYPTO_TYPE_NONE ? C.FORMAT_HANDLED : C.FORMAT_UNSUPPORTED_DRM);
     } else if (MimeTypes.isText(format.sampleMimeType)) {
@@ -385,7 +387,7 @@ public final class TextRenderer extends BaseRenderer implements Callback {
     }
   }
 
-  private void invokeUpdateOutputInternal(List<Cue> cues) {
+  protected void invokeUpdateOutputInternal(List<Cue> cues) {
     output.onCues(cues);
   }
 

@@ -1130,6 +1130,16 @@ public final class Format implements Bundleable {
     return width == NO_VALUE || height == NO_VALUE ? NO_VALUE : (width * height);
   }
 
+  /**
+   * #EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID="led",LANGUAGE="en",NAME="ledconfig",DEFAULT=NO,AUTOSELECT=NO,FORCED=NO,
+   * URI="https://vod-dev2.oss-cn-shanghai.aliyuncs.com/caption/test01-lighting-gzip.m3u8"
+   *
+   * @return Whether this format is a Fiture Led track
+   */
+  public boolean isLed() {
+    return "led:ledconfig".equals(id);
+  }
+
   @Override
   public String toString() {
     return "Format("

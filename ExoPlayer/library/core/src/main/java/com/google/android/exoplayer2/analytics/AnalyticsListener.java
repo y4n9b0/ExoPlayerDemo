@@ -302,6 +302,8 @@ public interface AnalyticsListener {
   int EVENT_METADATA = Player.EVENT_METADATA;
   /** {@link Player#getCurrentCues()} changed. */
   int EVENT_CUES = Player.EVENT_CUES;
+  /** Led cues with the current playback time changed. */
+  int EVENT_LED_CUES = Player.EVENT_LED_CUES;
   /** {@link Player#getDeviceInfo()} changed. */
   int EVENT_DEVICE_INFO_CHANGED = Player.EVENT_DEVICE_INFO_CHANGED;
   /** {@link Player#getDeviceVolume()} changed. */
@@ -854,6 +856,8 @@ public interface AnalyticsListener {
    * @param cues The {@link Cue Cues}. May be empty.
    */
   default void onCues(EventTime eventTime, List<Cue> cues) {}
+
+  default void onLedCues(EventTime eventTime, List<Cue> cues) {}
 
   /** @deprecated Use {@link #onAudioEnabled} and {@link #onVideoEnabled} instead. */
   @Deprecated

@@ -24,6 +24,8 @@ import com.google.android.exoplayer2.source.ProgressiveMediaSource
 import com.google.android.exoplayer2.source.dash.DashMediaSource
 import com.google.android.exoplayer2.source.hls.HlsMediaSource
 import com.google.android.exoplayer2.source.smoothstreaming.SsMediaSource
+import com.google.android.exoplayer2.text.Cue
+import com.google.android.exoplayer2.trackselection.DefaultTrackSelector
 import com.google.android.exoplayer2.ui.PlayerView
 import com.google.android.exoplayer2.upstream.DataSource
 import com.google.android.exoplayer2.upstream.DefaultDataSource
@@ -40,11 +42,32 @@ class MainActivity : AppCompatActivity() {
 
     private val TAG = "Bob"
     val ACTION_VIEW = "com.y4n9b0.exo.demo.action.VIEW"
-    var url = "http://cp-vod.qa.fiture.com/callback/play/add2e56c1e7b7df307a6cb826bdaee3b5a5496c7/video.m3u8"
+    // led
+    // var url = "http://cp-vod.qa.fiture.com/callback/play/add2e56c1e7b7df307a6cb826bdaee3b5a5496c7/video.m3u8"
+    // led && vtt
+    var url = "http://cp-vod.qa.fiture.com/callback/play/0787a9e7a5d8cdd59123039d653123c8baf10c01/video.m3u8"
     // var url = "https://dev-vod.fiture.com/1834f6f999bc429580b553dd03bede20/997bf6a033d34ca5b8b4f4a7ee2a3a73-1e1a8c3c237291470a802e7df21b9ca9-od-S00000001-100000.m3u8"
     // var url = "https://dev-vod.fiture.com/7ec630630702455cbaed60cd1b1ceac4/269d6c9c439f4bd09d41c31cca3ef792-a709aafdbc5d9b5f987407d4a35671fc-od-S00000001-100000.m3u8"
 
     private val listener = object : Player.Listener {
+        override fun onLedCues(cues: MutableList<Cue>) {
+            super.onLedCues(cues)
+            if (cues.isEmpty()) {
+                Log.w(TAG, "Listener onLedCues empty")
+            } else {
+                Log.w(TAG, "Listener onLedCues ${cues[0]}")
+            }
+        }
+
+        override fun onCues(cues: MutableList<Cue>) {
+            super.onCues(cues)
+            if (cues.isEmpty()) {
+                Log.w(TAG, "Listener onCues empty")
+            } else {
+                Log.w(TAG, "Listener onCues ${cues[0].text}")
+            }
+        }
+
         override fun onPlayerError(error: PlaybackException) {
             super.onPlayerError(error)
             Log.e(TAG, "Listener onPlayerError ${error.message}")
@@ -52,6 +75,24 @@ class MainActivity : AppCompatActivity() {
     }
 
     private val analyticsListener = object : AnalyticsListener {
+        override fun onLedCues(eventTime: AnalyticsListener.EventTime, cues: MutableList<Cue>) {
+            super.onLedCues(eventTime, cues)
+            if (cues.isEmpty()) {
+                Log.w(TAG, "AnalyticsListener onLedCues empty")
+            } else {
+                Log.w(TAG, "AnalyticsListener onLedCues ${cues[0]}")
+            }
+        }
+
+        override fun onCues(eventTime: AnalyticsListener.EventTime, cues: MutableList<Cue>) {
+            super.onCues(eventTime, cues)
+            if (cues.isEmpty()) {
+                Log.w(TAG, "AnalyticsListener onCues empty")
+            } else {
+                Log.w(TAG, "AnalyticsListener onCues ${cues[0].text}")
+            }
+        }
+
         override fun onAudioCodecError(eventTime: AnalyticsListener.EventTime, audioCodecError: Exception) {
             super.onAudioCodecError(eventTime, audioCodecError)
             Log.e(TAG, "onAudioCodecError ${audioCodecError.message}")
@@ -95,10 +136,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     private val exoPlayer: ExoPlayer by lazy {
-        val trackSelector = MultiTrackSelector(this)
+        val trackSelector = DefaultTrackSelector(this)
+        trackSelector.parameters = DefaultTrackSelector.ParametersBuilder(this).setLedEnabled(true).build()
         val renderFactory = MultiTrackRenderFactory(this, 3)
         ExoPlayer.Builder(this)
-            // .setTrackSelector(trackSelector)
+            .setTrackSelector(trackSelector)
             .setRenderersFactory(renderFactory)
             .build().apply {
                 addListener(listener)

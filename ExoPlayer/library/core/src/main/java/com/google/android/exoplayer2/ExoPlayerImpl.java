@@ -185,6 +185,7 @@ import java.util.concurrent.TimeoutException;
   private float volume;
   private boolean skipSilenceEnabled;
   private List<Cue> currentCues;
+  private List<Cue> currentLedCues;
   @Nullable private VideoFrameMetadataListener videoFrameMetadataListener;
   @Nullable private CameraMotionListener cameraMotionListener;
   private boolean throwsWhenUsingWrongThread;
@@ -332,8 +333,9 @@ import java.util.concurrent.TimeoutException;
       playlistMetadata = MediaMetadata.EMPTY;
       staticAndDynamicMediaMetadata = MediaMetadata.EMPTY;
       maskingWindowIndex = C.INDEX_UNSET;
-      audioSessionId = findAudioSessionIdFromRenderers();
+      audioSessionId = findAudioSessionIdByMediaClock();
       currentCues = ImmutableList.of();
+      currentLedCues = ImmutableList.of();
       throwsWhenUsingWrongThread = true;
 
       addListener(analyticsCollector);
@@ -358,7 +360,7 @@ import java.util.concurrent.TimeoutException;
       deviceInfo = createDeviceInfo(streamVolumeManager);
       videoSize = VideoSize.UNKNOWN;
 
-      sendRendererMessageForAudioSessionId();
+      sendAudioSessionIdToRenderers();
       sendRendererMessage(TRACK_TYPE_AUDIO, MSG_SET_AUDIO_ATTRIBUTES, audioAttributes);
       sendRendererMessage(TRACK_TYPE_VIDEO, MSG_SET_SCALING_MODE, videoScalingMode);
       sendRendererMessage(
@@ -373,7 +375,7 @@ import java.util.concurrent.TimeoutException;
     }
   }
 
-  private int findAudioSessionIdFromRenderers() {
+  private int findAudioSessionIdByMediaClock() {
       int audioSessionId = C.AUDIO_SESSION_ID_UNSET;
       if (renderers.length > 0) {
           int firstAudioTrackSessionId = C.AUDIO_SESSION_ID_UNSET;
@@ -953,6 +955,7 @@ import java.util.concurrent.TimeoutException;
     audioFocusManager.updateAudioFocus(getPlayWhenReady(), Player.STATE_IDLE);
     stopInternal(reset, /* error= */ null);
     currentCues = ImmutableList.of();
+    currentLedCues = ImmutableList.of();
   }
 
   @Override
@@ -1006,6 +1009,7 @@ import java.util.concurrent.TimeoutException;
       isPriorityTaskManagerRegistered = false;
     }
     currentCues = ImmutableList.of();
+    currentLedCues = ImmutableList.of();
     playerReleased = true;
   }
 
@@ -1420,7 +1424,7 @@ import java.util.concurrent.TimeoutException;
       initializeKeepSessionIdAudioTrack(audioSessionId);
     }
     this.audioSessionId = audioSessionId;
-    sendRendererMessageForAudioSessionId();
+    sendAudioSessionIdToRenderers();
     int finalAudioSessionId = audioSessionId;
     listeners.sendEvent(
         EVENT_AUDIO_SESSION_ID, listener -> listener.onAudioSessionIdChanged(finalAudioSessionId));
@@ -2639,7 +2643,7 @@ import java.util.concurrent.TimeoutException;
     }
   }
 
-  private void sendRendererMessageForAudioSessionId() {
+  private void sendAudioSessionIdToRenderers() {
       for (Renderer renderer : renderers) {
           int trackType = renderer.getTrackType();
           if (trackType == TRACK_TYPE_VIDEO ||
@@ -2884,6 +2888,12 @@ import java.util.concurrent.TimeoutException;
     public void onCues(List<Cue> cues) {
       currentCues = cues;
       listeners.sendEvent(EVENT_CUES, listener -> listener.onCues(cues));
+    }
+
+    @Override
+    public void onLedCues(List<Cue> cues) {
+      currentLedCues = cues;
+      listeners.sendEvent(EVENT_LED_CUES, listener -> listener.onLedCues(cues));
     }
 
     // MetadataOutput implementation

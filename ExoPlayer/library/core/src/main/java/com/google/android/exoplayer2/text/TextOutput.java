@@ -29,4 +29,6 @@ public interface TextOutput {
    * @param cues The {@link Cue Cues}. May be empty.
    */
   void onCues(List<Cue> cues);
+
+  default void onLedCues(List<Cue> cues) {}
 }

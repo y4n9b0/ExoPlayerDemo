@@ -1036,6 +1036,8 @@ public interface Player {
      */
     default void onCues(List<Cue> cues) {}
 
+    default void onLedCues(List<Cue> cues) {}
+
     /**
      * Called when there is metadata associated with the current playback time.
      *
@@ -1302,7 +1304,8 @@ public interface Player {
     EVENT_CUES,
     EVENT_METADATA,
     EVENT_DEVICE_INFO_CHANGED,
-    EVENT_DEVICE_VOLUME_CHANGED
+    EVENT_DEVICE_VOLUME_CHANGED,
+    EVENT_LED_CUES
   })
   @interface Event {}
   /** {@link #getCurrentTimeline()} changed. */
@@ -1373,6 +1376,8 @@ public interface Player {
   int EVENT_DEVICE_INFO_CHANGED = 29;
   /** {@link #getDeviceVolume()} changed. */
   int EVENT_DEVICE_VOLUME_CHANGED = 30;
+  /** Led cues with the current playback time changed. */
+  int EVENT_LED_CUES = 31;
 
   /**
    * Commands that can be executed on a {@code Player}. One of {@link #COMMAND_PLAY_PAUSE}, {@link
