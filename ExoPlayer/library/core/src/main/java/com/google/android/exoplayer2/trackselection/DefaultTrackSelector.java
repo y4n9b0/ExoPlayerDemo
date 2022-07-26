@@ -121,6 +121,7 @@ public class DefaultTrackSelector extends MappingTrackSelector {
     // Text
     private @C.SelectionFlags int disabledTextTrackSelectionFlags;
     private boolean ledEnabled;
+    private boolean srtEnabled;
     // General
     private boolean exceedRendererCapabilitiesIfNecessary;
     private boolean tunnelingEnabled;
@@ -164,6 +165,7 @@ public class DefaultTrackSelector extends MappingTrackSelector {
       // Text
       disabledTextTrackSelectionFlags = initialValues.disabledTextTrackSelectionFlags;
       ledEnabled = initialValues.ledEnabled;
+      srtEnabled = initialValues.srtEnabled;
       // Video
       exceedVideoConstraintsIfNecessary = initialValues.exceedVideoConstraintsIfNecessary;
       allowVideoMixedMimeTypeAdaptiveness = initialValues.allowVideoMixedMimeTypeAdaptiveness;
@@ -240,6 +242,10 @@ public class DefaultTrackSelector extends MappingTrackSelector {
           bundle.getBoolean(
               Parameters.keyForField(Parameters.FIELD_LED_ENABLED),
               defaultValue.ledEnabled));
+      setSrtEnabled(
+          bundle.getBoolean(
+              Parameters.keyForField(Parameters.FIELD_SRT_ENABLED),
+              defaultValue.srtEnabled));
       // General
       setExceedRendererCapabilitiesIfNecessary(
           bundle.getBoolean(
@@ -590,6 +596,11 @@ public class DefaultTrackSelector extends MappingTrackSelector {
       return this;
     }
 
+    public ParametersBuilder setSrtEnabled(boolean srtEnabled) {
+      this.srtEnabled = srtEnabled;
+      return this;
+    }
+
     // General
 
     @Override
@@ -811,6 +822,7 @@ public class DefaultTrackSelector extends MappingTrackSelector {
       // Text
       disabledTextTrackSelectionFlags = 0;
       ledEnabled = false;
+      srtEnabled = false;
       // General
       exceedRendererCapabilitiesIfNecessary = true;
       tunnelingEnabled = false;
@@ -905,6 +917,8 @@ public class DefaultTrackSelector extends MappingTrackSelector {
     public final @C.SelectionFlags int disabledTextTrackSelectionFlags;
 
     public final boolean ledEnabled;
+
+    public final boolean srtEnabled;
 
     /** Returns an instance configured with default values. */
     public static Parameters getDefaults(Context context) {
@@ -1006,6 +1020,7 @@ public class DefaultTrackSelector extends MappingTrackSelector {
       // Text
       disabledTextTrackSelectionFlags = builder.disabledTextTrackSelectionFlags;
       ledEnabled = builder.ledEnabled;
+      srtEnabled = builder.srtEnabled;
       // General
       exceedRendererCapabilitiesIfNecessary = builder.exceedRendererCapabilitiesIfNecessary;
       tunnelingEnabled = builder.tunnelingEnabled;
@@ -1094,6 +1109,7 @@ public class DefaultTrackSelector extends MappingTrackSelector {
           // Text
           && disabledTextTrackSelectionFlags == other.disabledTextTrackSelectionFlags
           && ledEnabled == other.ledEnabled
+          && srtEnabled == other.srtEnabled
           // General
           && exceedRendererCapabilitiesIfNecessary == other.exceedRendererCapabilitiesIfNecessary
           && tunnelingEnabled == other.tunnelingEnabled
@@ -1121,6 +1137,7 @@ public class DefaultTrackSelector extends MappingTrackSelector {
       // Text
       result = 31 * result + disabledTextTrackSelectionFlags;
       result = 31 * result + (ledEnabled ? 1 : 0);
+      result = 31 * result + (srtEnabled ? 1 : 0);
       // General
       result = 31 * result + (exceedRendererCapabilitiesIfNecessary ? 1 : 0);
       result = 31 * result + (tunnelingEnabled ? 1 : 0);
@@ -1152,7 +1169,8 @@ public class DefaultTrackSelector extends MappingTrackSelector {
       FIELD_RENDERER_DISABLED_INDICES,
       FIELD_ALLOW_VIDEO_MIXED_DECODER_SUPPORT_ADAPTIVENESS,
       FIELD_ALLOW_AUDIO_MIXED_DECODER_SUPPORT_ADAPTIVENESS,
-      FIELD_LED_ENABLED
+      FIELD_LED_ENABLED,
+      FIELD_SRT_ENABLED
     })
     private @interface FieldNumber {}
 
@@ -1175,6 +1193,7 @@ public class DefaultTrackSelector extends MappingTrackSelector {
     private static final int FIELD_ALLOW_VIDEO_MIXED_DECODER_SUPPORT_ADAPTIVENESS = 1015;
     private static final int FIELD_ALLOW_AUDIO_MIXED_DECODER_SUPPORT_ADAPTIVENESS = 1016;
     private static final int FIELD_LED_ENABLED = 1017;
+    private static final int FIELD_SRT_ENABLED = 1018;
 
     @Override
     public Bundle toBundle() {
@@ -1213,6 +1232,7 @@ public class DefaultTrackSelector extends MappingTrackSelector {
       bundle.putInt(
           keyForField(FIELD_DISABLED_TEXT_TRACK_SELECTION_FLAGS), disabledTextTrackSelectionFlags);
       bundle.putBoolean(keyForField(FIELD_LED_ENABLED), ledEnabled);
+      bundle.putBoolean(keyForField(FIELD_SRT_ENABLED), srtEnabled);
       // General
       bundle.putBoolean(
           keyForField(FIELD_EXCEED_RENDERER_CAPABILITIES_IF_NECESSARY),
@@ -2806,7 +2826,8 @@ public class DefaultTrackSelector extends MappingTrackSelector {
               || (parameters.preferredTextLanguages.isEmpty() && preferredRoleFlagsScore > 0)
               || isDefault
               || (isForced && selectedAudioLanguageScore > 0)
-              || (parameters.ledEnabled && format.isLed());
+              || (parameters.ledEnabled && format.isLed())
+              || (parameters.srtEnabled && format.isSrt());
       selectionEligibility =
           isSupported(trackFormatSupport, parameters.exceedRendererCapabilitiesIfNecessary)
                   && isWithinConstraints

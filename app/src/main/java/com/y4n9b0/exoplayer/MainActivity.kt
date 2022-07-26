@@ -42,6 +42,7 @@ class MainActivity : AppCompatActivity() {
 
     private val TAG = "Bob"
     val ACTION_VIEW = "com.y4n9b0.exo.demo.action.VIEW"
+
     // led
     // var url = "http://cp-vod.qa.fiture.com/callback/play/add2e56c1e7b7df307a6cb826bdaee3b5a5496c7/video.m3u8"
     // led && vtt
@@ -137,7 +138,8 @@ class MainActivity : AppCompatActivity() {
 
     private val exoPlayer: ExoPlayer by lazy {
         val trackSelector = DefaultTrackSelector(this)
-        trackSelector.parameters = DefaultTrackSelector.ParametersBuilder(this).setLedEnabled(true).build()
+        trackSelector.parameters =
+            DefaultTrackSelector.ParametersBuilder(this).setLedEnabled(true).setSrtEnabled(true).build()
         val renderFactory = MultiTrackRenderFactory(this, 3)
         ExoPlayer.Builder(this)
             .setTrackSelector(trackSelector)
@@ -155,6 +157,7 @@ class MainActivity : AppCompatActivity() {
 
         val playerView = findViewById<PlayerView>(R.id.player_view)
         playerView.player = exoPlayer
+        playerView.setSubtitlePainterFactory { FitureSubtitlePainter(it) }
         // exoPlayer.setMediaItem(MediaItem.fromUri(url))
         exoPlayer.setMediaSource(createMediaSource(url))
         exoPlayer.prepare()

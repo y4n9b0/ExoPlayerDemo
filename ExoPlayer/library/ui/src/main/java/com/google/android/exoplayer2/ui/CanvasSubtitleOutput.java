@@ -34,6 +34,7 @@ import java.util.List;
  */
 /* package */ final class CanvasSubtitleOutput extends View implements SubtitleView.Output {
 
+  private SubtitlePainter.Factory factory;
   private final List<SubtitlePainter> painters;
 
   private List<Cue> cues;
@@ -48,6 +49,7 @@ import java.util.List;
 
   public CanvasSubtitleOutput(Context context, @Nullable AttributeSet attrs) {
     super(context, attrs);
+    factory = SubtitlePainter.Factory.DEFAULT;
     painters = new ArrayList<>();
     cues = Collections.emptyList();
     textSizeType = Cue.TEXT_SIZE_TYPE_FRACTIONAL;
@@ -70,10 +72,17 @@ import java.util.List;
     this.bottomPaddingFraction = bottomPaddingFraction;
     // Ensure we have sufficient painters.
     while (painters.size() < cues.size()) {
-      painters.add(new SubtitlePainter(getContext()));
+      painters.add(factory.createSubtitlePainter(getContext()));
     }
     // Invalidate to trigger drawing.
     invalidate();
+  }
+
+  @Override
+  public void setSubtitlePainterFactory(SubtitlePainter.Factory factory) {
+    if (this.factory == factory) return;
+    this.factory = factory;
+    painters.clear();
   }
 
   @Override

@@ -613,6 +613,13 @@ public class PlayerView extends FrameLayout implements AdViewProvider {
     }
   }
 
+  public PlayerView setSubtitlePainterFactory(SubtitlePainter.Factory factory) {
+    if (subtitleView != null) {
+        subtitleView.setSubtitlePainterFactory(factory);
+    }
+    return this;
+  }
+
   @Override
   public void setVisibility(int visibility) {
     super.setVisibility(visibility);

@@ -1140,6 +1140,16 @@ public final class Format implements Bundleable {
     return "led:ledconfig".equals(id);
   }
 
+  /**
+   * #EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID="srt",LANGUAGE="en",NAME="jczlccsn (1).srt",DEFAULT=NO,AUTOSELECT=NO,FORCED=NO,
+   * URI="https://exter-public-qa.fiture.com/073a07/caption/subtite/f816a6d0fcc647dcb541b8b0eeaeb66f/f816a6d0fcc647dcb541b8b0eeaeb66f.m3u8
+   *
+   * @return Whether this format is a Fiture text track which group id starts with "srt"
+   */
+  public boolean isSrt() {
+      return id != null && id.startsWith("srt");
+  }
+
   @Override
   public String toString() {
     return "Format("

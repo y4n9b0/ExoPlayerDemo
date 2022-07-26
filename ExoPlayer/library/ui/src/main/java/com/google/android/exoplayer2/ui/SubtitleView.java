@@ -73,6 +73,8 @@ public final class SubtitleView extends FrameLayout implements Player.Listener {
         float defaultTextSize,
         @Cue.TextSizeType int defaultTextSizeType,
         float bottomPaddingFraction);
+
+    default void setSubtitlePainterFactory(SubtitlePainter.Factory factory) {}
   }
 
   /**
@@ -88,7 +90,7 @@ public final class SubtitleView extends FrameLayout implements Player.Listener {
    *
    * @see #setBottomPaddingFraction(float)
    */
-  public static final float DEFAULT_BOTTOM_PADDING_FRACTION = 0.08f;
+  public static final float DEFAULT_BOTTOM_PADDING_FRACTION = 0.1875f; // 设计稿魔镜高度960dp，字幕距离底部180dp
 
   /** Indicates subtitles should be displayed using a {@link Canvas}. This is the default. */
   public static final int VIEW_TYPE_CANVAS = 1;
@@ -228,7 +230,7 @@ public final class SubtitleView extends FrameLayout implements Player.Listener {
    * <p>Otherwise (and always before API level 19) uses a default font scale of 1.0.
    */
   public void setUserDefaultTextSize() {
-    setFractionalTextSize(DEFAULT_TEXT_SIZE_FRACTION * getUserCaptionFontScale());
+    setFixedTextSize(TypedValue.COMPLEX_UNIT_DIP, 16f);
   }
 
   /**
@@ -320,6 +322,10 @@ public final class SubtitleView extends FrameLayout implements Player.Listener {
   public void setBottomPaddingFraction(float bottomPaddingFraction) {
     this.bottomPaddingFraction = bottomPaddingFraction;
     updateOutput();
+  }
+
+  public void setSubtitlePainterFactory(SubtitlePainter.Factory factory) {
+    output.setSubtitlePainterFactory(factory);
   }
 
   private float getUserCaptionFontScale() {
