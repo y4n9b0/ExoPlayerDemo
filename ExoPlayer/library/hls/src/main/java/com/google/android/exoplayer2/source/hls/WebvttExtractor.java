@@ -50,6 +50,7 @@ public final class WebvttExtractor implements Extractor {
 
   private static final Pattern LOCAL_TIMESTAMP = Pattern.compile("LOCAL:([^,]+)");
   private static final Pattern MEDIA_TIMESTAMP = Pattern.compile("MPEGTS:(-?\\d+)");
+  private static final Pattern FITURE_OFFSET = Pattern.compile("OFFSET:(-?\\d+)");
   private static final int HEADER_MIN_LENGTH = 6 /* "WEBVTT" */;
   private static final int HEADER_MAX_LENGTH = 3 /* optional Byte Order Mark */ + HEADER_MIN_LENGTH;
 
@@ -145,6 +146,7 @@ public final class WebvttExtractor implements Extractor {
     // Defaults to use if the header doesn't contain an X-TIMESTAMP-MAP header.
     long vttTimestampUs = 0;
     long tsTimestampUs = 0;
+    long fitureOffsetUs = Long.MIN_VALUE;
 
     // Parse the remainder of the header looking for X-TIMESTAMP-MAP.
     for (String line = webvttData.readLine();
@@ -167,6 +169,13 @@ public final class WebvttExtractor implements Extractor {
         tsTimestampUs =
             TimestampAdjuster.ptsToUs(
                 Long.parseLong(Assertions.checkNotNull(mediaTimestampMatcher.group(1))));
+      } else if (line.startsWith("X-FITURE-TIMESTAMP")) {
+        Matcher fitureOffsetMatcher = FITURE_OFFSET.matcher(line);
+        if (!fitureOffsetMatcher.find()) {
+          fitureOffsetUs = 0;
+        } else {
+          fitureOffsetUs = Long.parseLong(Assertions.checkNotNull(fitureOffsetMatcher.group(1)));
+        }
       }
     }
 
@@ -183,7 +192,8 @@ public final class WebvttExtractor implements Extractor {
     long sampleTimeUs =
         timestampAdjuster.adjustTsTimestamp(
             TimestampAdjuster.usToWrappedPts(firstCueTimeUs + tsTimestampUs - vttTimestampUs));
-    long subsampleOffsetUs = sampleTimeUs - firstCueTimeUs;
+    long standardSubsampleOffsetUs = sampleTimeUs - firstCueTimeUs;
+    long subsampleOffsetUs = fitureOffsetUs != Long.MIN_VALUE ? fitureOffsetUs : standardSubsampleOffsetUs;
     // Output the track.
     TrackOutput trackOutput = buildTrackOutput(subsampleOffsetUs);
     // Output the sample.
