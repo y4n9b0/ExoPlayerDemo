@@ -9,7 +9,6 @@ import com.google.android.exoplayer2.offline.DownloadManager
 import com.google.android.exoplayer2.upstream.DefaultHttpDataSource
 import com.google.android.exoplayer2.upstream.HttpDataSource
 import com.google.android.exoplayer2.upstream.cache.Cache
-import com.google.android.exoplayer2.upstream.cache.NoOpCacheEvictor
 import com.google.android.exoplayer2.upstream.cache.SimpleCache
 import com.google.android.exoplayer2.util.Util
 import java.io.File
@@ -18,7 +17,8 @@ import java.util.concurrent.Executor
 
 class FitureDownloadManager private constructor(context: Context) {
 
-    private val externalFilesDir: File = context.getExternalFilesDir(Environment.DIRECTORY_MOVIES) ?: context.filesDir
+    private val externalFilesDir: File = context.getExternalFilesDir(Environment.DIRECTORY_MOVIES)
+        ?: File(context.filesDir, Environment.DIRECTORY_MOVIES)
 
     // Note: This should be a singleton in your app.
     val databaseProvider: DatabaseProvider by lazy {
@@ -53,7 +53,10 @@ class FitureDownloadManager private constructor(context: Context) {
             downloadCache,
             httpDataSourceFactory,
             downloadExecutor
-        ).apply { maxParallelDownloads = 3 }
+        ).apply {
+            maxParallelDownloads = 3
+            // addListener(object : DownloadManager.Listener {})
+        }
     }
 
     fun getDownloads(): HashMap<String, Download> {
@@ -75,7 +78,7 @@ class FitureDownloadManager private constructor(context: Context) {
 
         @Synchronized
         fun newInstance(context: Context): FitureDownloadManager {
-            return instance ?: FitureDownloadManager(context).also { instance = it }
+            return instance ?: FitureDownloadManager(context.applicationContext).also { instance = it }
         }
     }
 }
