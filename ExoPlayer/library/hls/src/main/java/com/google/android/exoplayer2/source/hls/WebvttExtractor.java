@@ -150,6 +150,10 @@ public final class WebvttExtractor implements Extractor {
     for (String line = webvttData.readLine();
         !TextUtils.isEmpty(line);
         line = webvttData.readLine()) {
+      if (line.startsWith("X-FITURE-TIMESTAMP")) {
+        // Fiture 视频 pts 统一为 126000
+        line = "X-TIMESTAMP-MAP=LOCAL:00:00:00.000,MPEGTS:126000";
+      }
       if (line.startsWith("X-TIMESTAMP-MAP")) {
         Matcher localTimestampMatcher = LOCAL_TIMESTAMP.matcher(line);
         if (!localTimestampMatcher.find()) {
