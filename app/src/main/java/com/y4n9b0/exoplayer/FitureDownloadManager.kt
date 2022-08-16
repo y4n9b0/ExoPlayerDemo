@@ -29,7 +29,7 @@ class FitureDownloadManager private constructor(context: Context) {
         // A download cache keep only one media file at most.
         SimpleCache(
             externalFilesDir,
-            LruCacheEvictor(1),
+            LruCacheEvictor(1 shl 30, 1), // 缓存缓存最大空间 1G 且最多 1 个视频
             databaseProvider
         )
     }
