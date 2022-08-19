@@ -366,6 +366,27 @@ public class DefaultHttpDataSource extends BaseDataSource implements HttpDataSou
           e, dataSpec, HttpDataSourceException.TYPE_OPEN);
     }
 
+    // Check header status code for Fiture hls video decrypt-key request.
+    int headerStatusCode = connection.getHeaderFieldInt(HEADER_FIELD_STATUS_CODE, 200);
+    if (headerStatusCode != 200 && FITURE_DECRYPT_KEY_PATH.equals(dataSpec.uri.getPath())) {
+      Map<String, List<String>> headers = connection.getHeaderFields();
+      byte[] errorResponseBody;
+      try {
+        InputStream bodyStream = connection.getInputStream();
+        errorResponseBody = Util.toByteArray(isCompressed(connection) ? new GZIPInputStream(bodyStream) : bodyStream);
+      } catch (IOException e) {
+        errorResponseBody = Util.EMPTY_BYTE_ARRAY;
+      }
+      String message = "Fiture decrypt-key url=" + dataSpec.uri
+              + ", response header X-NT-Status-Code=" + headerStatusCode
+              + ", response body=" + new String(errorResponseBody);
+      Log.w("DefaultHttpDataSource", message);
+      IOException cause = new IOException(message);
+      closeConnectionQuietly();
+      throw new InvalidResponseCodeException(
+              responseCode, responseMessage, cause, headers, dataSpec, errorResponseBody);
+    }
+
     // Check for a valid response code.
     if (responseCode < 200 || responseCode > 299) {
       Map<String, List<String>> headers = connection.getHeaderFields();

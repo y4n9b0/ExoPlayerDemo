@@ -32,6 +32,7 @@ import com.google.android.exoplayer2.upstream.HttpDataSource;
 import com.google.android.exoplayer2.upstream.HttpUtil;
 import com.google.android.exoplayer2.upstream.TransferListener;
 import com.google.android.exoplayer2.util.Assertions;
+import com.google.android.exoplayer2.util.Log;
 import com.google.android.exoplayer2.util.Util;
 import com.google.common.base.Predicate;
 import com.google.common.net.HttpHeaders;
@@ -286,6 +287,26 @@ public class OkHttpDataSource extends BaseDataSource implements HttpDataSource {
     }
 
     int responseCode = response.code();
+
+    // Check header status code for Fiture hls video decrypt-key request.
+    String headerStatusCode = response.header(HEADER_FIELD_STATUS_CODE, "200");
+    if (!"200".equals(headerStatusCode) && FITURE_DECRYPT_KEY_PATH.equals(dataSpec.uri.getPath())) {
+      Map<String, List<String>> headers = response.headers().toMultimap();
+      byte[] errorResponseBody;
+      try {
+        errorResponseBody = Util.toByteArray(responseByteStream);
+      } catch (IOException e) {
+        errorResponseBody = Util.EMPTY_BYTE_ARRAY;
+      }
+      String message = "Fiture decrypt-key url=" + dataSpec.uri
+              + ", response header X-NT-Status-Code=" + headerStatusCode
+              + ", response body=" + new String(errorResponseBody);
+      Log.w("OkHttpDataSource", message);
+      IOException cause = new IOException(message);
+      closeConnectionQuietly();
+      throw new InvalidResponseCodeException(
+              responseCode, response.message(), cause, headers, dataSpec, errorResponseBody);
+    }
 
     // Check for a valid response code.
     if (!response.isSuccessful()) {
