@@ -179,9 +179,10 @@ class MainActivity : AppCompatActivity() {
 
     private val exoPlayer: ExoPlayer by lazy {
         val trackSelector = DefaultTrackSelector(this)
-        trackSelector.parameters =
-            DefaultTrackSelector.ParametersBuilder(this).setLedEnabled(true).setSrtEnabled(true)
-                .build()
+        trackSelector.parameters = DefaultTrackSelector.ParametersBuilder(this)
+            .setLedEnabled(true)
+            .setSrtEnabled(true)
+            .build()
         val renderFactory = MultiTrackRenderFactory(this, 3)
         ExoPlayer.Builder(this)
             .setTrackSelector(trackSelector)
@@ -262,13 +263,19 @@ class MainActivity : AppCompatActivity() {
      * @param readOnly 缓存是否仅读（该值只有在 enableCaching=true 时有效），
      *        对于通过 [addDownload] 方式手动下载的视频，再次播放不需要缓存可写，设置 readOnly=true
      *        对于边播边缓存的视频，ExoPlayer 自动处理了再次播放的缓存逻辑，不需要设置 readOnly=true
+     * @param useOkHttp 是否使用 OkHttpDataSource 作为 ExoPlayer 的 upstream，
+     *        默认的 DefaultHttpDataSource 使用 HttpUrlConnection 进行网络请求
      */
     private fun buildDataSourceFactory(
         enableCaching: Boolean,
-        readOnly: Boolean = false
+        readOnly: Boolean = false,
+        useOkHttp: Boolean = false,
     ): DataSource.Factory {
         val fdm = FitureDownloadManager.newInstance(this)
-        val upstreamFactory = DefaultDataSource.Factory(this, fdm.httpDataSourceFactory)
+        val upstreamFactory = DefaultDataSource.Factory(
+            this,
+            if (useOkHttp) fdm.okHttpDataSourceFactory else fdm.httpDataSourceFactory
+        )
         return if (enableCaching) {
             buildCacheDataSourceFactory(upstreamFactory, fdm.downloadCache, readOnly)
         } else {

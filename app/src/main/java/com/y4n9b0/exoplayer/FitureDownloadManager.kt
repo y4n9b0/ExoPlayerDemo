@@ -4,6 +4,7 @@ import android.content.Context
 import android.os.Environment
 import com.google.android.exoplayer2.database.DatabaseProvider
 import com.google.android.exoplayer2.database.StandaloneDatabaseProvider
+import com.google.android.exoplayer2.ext.okhttp.OkHttpDataSource
 import com.google.android.exoplayer2.offline.Download
 import com.google.android.exoplayer2.offline.DownloadManager
 import com.google.android.exoplayer2.upstream.DefaultHttpDataSource
@@ -11,6 +12,7 @@ import com.google.android.exoplayer2.upstream.HttpDataSource
 import com.google.android.exoplayer2.upstream.cache.Cache
 import com.google.android.exoplayer2.upstream.cache.SimpleCache
 import com.google.android.exoplayer2.util.Util
+import okhttp3.OkHttpClient
 import java.io.File
 import java.io.IOException
 import java.util.concurrent.Executor
@@ -36,7 +38,13 @@ class FitureDownloadManager private constructor(context: Context) {
 
     val httpDataSourceFactory: HttpDataSource.Factory by lazy {
         val userAgent = Util.getUserAgent(context, "FitureDownloader")
-        DefaultHttpDataSource.Factory().apply { setUserAgent(userAgent) }
+        DefaultHttpDataSource.Factory().setUserAgent(userAgent)
+    }
+
+    val okHttpDataSourceFactory: HttpDataSource.Factory by lazy {
+        val userAgent = Util.getUserAgent(context, "FitureDownloader")
+        val okHttpClient: OkHttpClient = OkHttpClient.Builder().build()
+        OkHttpDataSource.Factory(okHttpClient).setUserAgent(userAgent)
     }
 
     val downloadManager: DownloadManager by lazy {
