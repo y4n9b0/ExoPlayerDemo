@@ -36,6 +36,7 @@ class MultiTrackRenderFactory(
                 MultiTrackAudioRender(
                     context = context,
                     mediaCodecSelector = mediaCodecSelector,
+                    codecAdapterFactory = codecAdapterFactory,
                     enableDecoderFallback = enableDecoderFallback,
                     eventHandler = eventHandler,
                     eventListener = eventListener,
