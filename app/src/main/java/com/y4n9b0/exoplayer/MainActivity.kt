@@ -77,30 +77,28 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        override fun onPlayerError(error: PlaybackException) {
-            super.onPlayerError(error)
-            Log.e(TAG, buildErrorMessage(error))
+        override fun onPlaybackStateChanged(playbackState: Int) {
+            super.onPlaybackStateChanged(playbackState)
+//            Log.d(TAG, "onPlayerStateChanged playbackState=$playbackState")
+            when (playbackState) {
+                Player.STATE_IDLE -> {
+                    Log.d(TAG, "onPlayerStateChanged playbackState=Player.STATE_IDLE")
+                }
+                Player.STATE_BUFFERING -> {
+                    Log.d(TAG, "onPlayerStateChanged playbackState=Player.STATE_BUFFERING")
+                }
+                Player.STATE_READY -> {
+                    Log.d(TAG, "onPlayerStateChanged playbackState=Player.STATE_READY")
+                }
+                Player.STATE_ENDED -> {
+                    Log.d(TAG, "onPlayerStateChanged playbackState=Player.STATE_ENDED")
+                }
+            }
         }
 
-        private fun buildErrorMessage(error: PlaybackException): String {
-            val newline = "\r\n"
-            val indent = "  "
-            val sb = StringBuilder()
-                .append("onPlayerError, ExoPlaybackException: ${error.message}")
-                .append(newline)
-                .append(indent)
-            var cause: Throwable? = error.cause
-            var level = 1
-            while (cause != null) {
-                sb.append(newline)
-                repeat(level) {
-                    sb.append(indent)
-                }
-                sb.append("Cause $level: ${cause.message}")
-                cause = cause.cause
-                level++
-            }
-            return sb.toString()
+        override fun onPlayerError(error: PlaybackException) {
+            super.onPlayerError(error)
+            Log.e(TAG, "Player.Listener onPlayerError ${buildErrorMessage(error)}")
         }
     }
 
@@ -155,7 +153,7 @@ class MainActivity : AppCompatActivity() {
             error: PlaybackException
         ) {
             super.onPlayerError(eventTime, error)
-            Log.e(TAG, "AnalyticsListener onPlayerError ${error.message}")
+            Log.e(TAG, "AnalyticsListener onPlayerError ${buildErrorMessage(error)}")
         }
 
         override fun onVideoCodecError(
@@ -191,6 +189,27 @@ class MainActivity : AppCompatActivity() {
                 addListener(listener)
                 addAnalyticsListener(analyticsListener)
             }
+    }
+
+    private fun buildErrorMessage(error: PlaybackException): String {
+        val newline = "\r\n"
+        val indent = "  "
+        val sb = StringBuilder()
+            .append("onPlayerError, ExoPlaybackException: ${error.message}")
+            .append(newline)
+            .append(indent)
+        var cause: Throwable? = error.cause
+        var level = 1
+        while (cause != null) {
+            sb.append(newline)
+            repeat(level) {
+                sb.append(indent)
+            }
+            sb.append("Cause $level: ${cause.message}")
+            cause = cause.cause
+            level++
+        }
+        return sb.toString()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
