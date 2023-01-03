@@ -16,7 +16,7 @@ import com.google.android.exoplayer2.text.TextOutput
 import com.google.android.exoplayer2.util.Util
 import kotlin.math.max
 
-class MultiTrackRenderFactory(
+class MultiTrackRenderersFactory(
     context: Context,
     private val multiAudioTrackCount: Int
 ) : DefaultRenderersFactory(context) {
@@ -33,7 +33,7 @@ class MultiTrackRenderFactory(
     ) {
         repeat(max(1, multiAudioTrackCount)) {
             out.add(
-                MultiTrackAudioRender(
+                MultiTrackAudioRenderer(
                     context = context,
                     mediaCodecSelector = mediaCodecSelector,
                     codecAdapterFactory = codecAdapterFactory,

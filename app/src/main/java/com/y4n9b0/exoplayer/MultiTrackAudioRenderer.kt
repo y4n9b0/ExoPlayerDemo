@@ -12,7 +12,7 @@ import com.google.android.exoplayer2.mediacodec.MediaCodecSelector
 import com.google.android.exoplayer2.util.MediaClock
 import com.google.android.exoplayer2.util.MediaClockExt
 
-class MultiTrackAudioRender(
+class MultiTrackAudioRenderer(
     context: Context,
     mediaCodecSelector: MediaCodecSelector,
     codecAdapterFactory: MediaCodecAdapter.Factory = MediaCodecAdapter.Factory.DEFAULT,

@@ -181,10 +181,10 @@ class MainActivity : AppCompatActivity() {
             .setLedEnabled(true)
             .setSrtEnabled(true)
             .build()
-        val renderFactory = MultiTrackRenderFactory(this, 3)
+        val renderersFactory = MultiTrackRenderersFactory(this, 3)
         ExoPlayer.Builder(this)
             .setTrackSelector(trackSelector)
-            .setRenderersFactory(renderFactory)
+            .setRenderersFactory(renderersFactory)
             .build().apply {
                 addListener(listener)
                 addAnalyticsListener(analyticsListener)
